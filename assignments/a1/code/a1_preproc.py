@@ -97,6 +97,11 @@ def build_stopwords():
         }
 
 
+# Obtained from http://www.noah.org/wiki/RegEx_Python#URL_regex_pattern
+url_regex = re.compile(
+    "http[s]?:\/\/(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
+)
+
 abbrev_regex = build_abbrev_regex()
 
 punc_regex = build_punc_regex()
@@ -181,18 +186,7 @@ def remove_urls(string):
     :param string: some input string
     :return: string, with each URL removed
     """
-
-    # Helper predicate for clarity
-    def is_url(token):
-        return token[:3] == "www" or \
-               token[:4] == "http"
-
-    # Split on spaces, then join using spaces
-    return " ".join([
-        token
-        for token in string.split(" ")
-        if not is_url(token)
-    ])
+    return url_regex.sub(" ", string)
 
 
 def split_punctuation(string):
@@ -297,8 +291,8 @@ def spacy_tagging(string,
         # Add the result to the current sentence
         cur_sentence += [to_add]
 
-        # If the token we just added was punctuation,
-        # end the sentence (step 9)
+        # If the token we just added was a sentence-closer (.)
+        # https://spacy.io/api/annotation -> "." is a sentence closer
         if split_sentences and (token.tag_ == "."):
             sentences += [cur_sentence]
             cur_sentence = []
@@ -350,7 +344,7 @@ def preproc1(comment, steps=range(1, 11)):
         modComm = split_clitics(modComm)
 
     # Steps 6,7,8,9 are accomplished by one function
-    # (so we only call spacy once)
+    # (to only call spacy once)
     if any((i in step_set)
            for i in [6, 7, 8, 9]):
         modComm = spacy_tagging(modComm,
