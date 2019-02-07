@@ -17,7 +17,7 @@ category_numbers = {
 
 # TODO REFACTOR INTO SIBLING CONSTANTS FILE?
 # TODO CHANGE THIS TO RUN ON CDF
-BGL_PATH = "../wordlists/BristolNorms+GihoolyLogie.csv"
+BGL_PATH = "../wordlists/BristolNorms+GilhoolyLogie.csv"
 
 
 def build_bgl_stats():
@@ -60,8 +60,8 @@ def build_id_to_liwc_feats():
         with open(f"../feats/{category}_IDs.txt", "r") as id_file:
             liwc_features = np.load(f"../feats/{category}_feats.dat.npy")
 
-            for (row_num, id_str) in enumerate(id_file.readlines()):
-                ret[id_str] = liwc_features[row_num]
+            for (row_num, id_line) in enumerate(id_file.readlines()):
+                ret[id_line.strip()] = liwc_features[row_num]
 
     return ret
 
@@ -171,11 +171,11 @@ def build_tag_counter(tags):
     tag_set = (x.lower() for x in tags)
 
     def ret_func(tagged_sents):
-        return (
+        return sum(
             1
             for sent in tagged_sents
             for (word, tag) in sent
-            if tag.lower() in tag_set
+            if tag and tag.lower() in tag_set
         )
 
     return ret_func
@@ -499,6 +499,9 @@ def extract1(comment):
     ret = np.zeros(173, dtype=np.float)
     ret[:29] = single_features
 
+    # Fill in LIWC (by comment ID)
+    ret[29:] = id_to_liwc_feats[comment["id"]]
+
     return ret
 
 
@@ -507,12 +510,10 @@ def main(args):
     feats = np.zeros((len(data), 173 + 1))
 
     # TODO: your code here
-    for (row_num, comment_json) in enumerate(data):
-        comment = json.loads(comment_json)
+    for (row_num, comment) in enumerate(data):
 
-        # Get the row (need to fill LIWC into indices 29-173)
+        # Get the row (LIWC features are already filled in)
         row = extract1(comment)
-        row[29:] = id_to_liwc_feats[comment["id"]]
 
         # Put category on end of row, then put row into slot
         feats[row_num] = np.concatenate((
