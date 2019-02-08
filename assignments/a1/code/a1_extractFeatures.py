@@ -72,7 +72,7 @@ war_stats = build_war_stats()
 
 id_to_liwc_feats = build_id_to_liwc_feats()
 
-punc_chars = set(x for x in string.punctuation)
+punc_chars = set(string.punctuation)
 
 
 # endregion
@@ -168,7 +168,7 @@ def build_tag_counter(tags):
 
     assert type(tags) is not str
 
-    tag_set = (x.lower() for x in tags)
+    tag_set = set(x.lower() for x in tags)
 
     def ret_func(tagged_sents):
         return sum(
@@ -208,9 +208,12 @@ def build_word_avg(word_to_stat):
     """
 
     def ret_func(tagged_sents):
-        return np.average(get_valid_word_statistics(
-            tagged_sents, word_to_stat
-        ))
+        arr = get_valid_word_statistics(tagged_sents,
+                                        word_to_stat)
+        if arr:
+            return np.mean(arr)
+        else:
+            return 0
 
     return ret_func
 
@@ -223,10 +226,14 @@ def build_word_std(word_to_stat):
     """
 
     def ret_func(tagged_sents):
-        return np.std(get_valid_word_statistics(
-            tagged_sents,
-            word_to_stat
-        ))
+
+        arr = get_valid_word_statistics(tagged_sents,
+                                        word_to_stat)
+
+        if arr:
+            return np.std(arr)
+        else:
+            return 0
 
     return ret_func
 
@@ -370,12 +377,18 @@ def avg_token_length(tagged_sents):
     :param tagged_sents:
     :return:
     """
-    return np.average([
+
+    tok_lengths = [
         len(word)
         for sent in tagged_sents
         for (word, tag) in sent
         if any(char not in punc_chars for char in word)
-    ])
+    ]
+
+    if tok_lengths:
+        return np.mean(tok_lengths)
+    else:
+        return 0
 
 
 def num_sentences(tagged_sents):
@@ -438,6 +451,39 @@ sd_war_dms = build_word_std(
     lambda word: float(war_stats[word]["D.Mean.Sum"])
 )
 
+# Attributes as functions, in assignment order
+attributes = [
+    num_1p_pronouns,
+    num_2p_pronouns,
+    num_3p_pronouns,
+    num_coord_conjunctions,
+    num_past_verbs,
+    num_future_verbs,
+    num_commas,
+    num_multi_punc,
+    num_common_nouns,
+    num_proper_nouns,
+    num_adverbs,
+    num_wh_words,
+    num_slang_acro,
+    num_big_caps_words,
+    avg_sent_length,
+    avg_token_length,
+    num_sentences,
+    avg_bgl_aoa,
+    avg_bgl_img,
+    avg_bgl_fam,
+    sd_bgl_aoa,
+    sd_bgl_img,
+    sd_bgl_fam,
+    avg_war_vms,
+    avg_war_ams,
+    avg_war_dms,
+    sd_war_vms,
+    sd_war_ams,
+    sd_war_dms,
+]
+
 
 # endregion
 
@@ -462,38 +508,8 @@ def extract1(comment):
     ]
 
     single_features = [
-        func(tagged_sents)
-        for func in [
-            num_1p_pronouns,
-            num_2p_pronouns,
-            num_3p_pronouns,
-            num_coord_conjunctions,
-            num_past_verbs,
-            num_future_verbs,
-            num_commas,
-            num_multi_punc,
-            num_common_nouns,
-            num_proper_nouns,
-            num_adverbs,
-            num_wh_words,
-            num_slang_acro,
-            num_big_caps_words,
-            avg_sent_length,
-            avg_token_length,
-            num_sentences,
-            avg_bgl_aoa,
-            avg_bgl_img,
-            avg_bgl_fam,
-            sd_bgl_aoa,
-            sd_bgl_img,
-            sd_bgl_fam,
-            avg_war_vms,
-            avg_war_ams,
-            avg_war_dms,
-            sd_war_vms,
-            sd_war_ams,
-            sd_war_dms,
-        ]
+        attr(tagged_sents)
+        for attr in attributes
     ]
 
     ret = np.zeros(173, dtype=np.float)
@@ -509,7 +525,6 @@ def main(args):
     data = json.load(open(args.input))
     feats = np.zeros((len(data), 173 + 1))
 
-    # TODO: your code here
     for (row_num, comment) in enumerate(data):
 
         # Get the row (LIWC features are already filled in)
@@ -526,8 +541,15 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process each .')
-    parser.add_argument("-o", "--output", help="Directs the output to a filename of your choice", required=True)
-    parser.add_argument("-i", "--input", help="The input JSON file, preprocessed as in Task 1", required=True)
+
+    parser.add_argument("-o",
+                        "--output",
+                        help="Directs the output to a filename of your choice", required=True)
+
+    parser.add_argument("-i",
+                        "--input",
+                        help="The input JSON file, preprocessed as in Task 1", required=True)
+
     args = parser.parse_args()
 
     main(args)

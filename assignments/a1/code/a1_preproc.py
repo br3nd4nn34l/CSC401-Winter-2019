@@ -251,7 +251,8 @@ def spacy_tagging(string,
                   add_tags,
                   remove_stopwords,
                   lemmatize,
-                  split_sentences):
+                  split_sentences,
+                  to_lowercase):
     """
     TODO DOCSTRING
     :param string:
@@ -259,6 +260,7 @@ def spacy_tagging(string,
     :param remove_stopwords:
     :param lemmatize:
     :param split_sentences:
+    :param to_lowercase:
     :return:
     """
 
@@ -282,6 +284,12 @@ def spacy_tagging(string,
         else:
             word = token.text
 
+        # Determine if word should be lowercased (step 9)
+        # (tags should not be lowercased!)
+        # https://piazza.com/class/jpzxwr3vuqa1tn?cid=236
+        if to_lowercase:
+            word = word.lower()
+
         # Determine if we want tags (step 6)
         if add_tags:
             to_add = f"{word}/{token.tag_}"
@@ -304,10 +312,6 @@ def spacy_tagging(string,
         " ".join(sent)
         for sent in sentences
     )
-
-
-def to_lowercase(string):
-    return string.lower()
 
 
 # endregion
@@ -346,15 +350,13 @@ def preproc1(comment, steps=range(1, 11)):
     # Steps 6,7,8,9 are accomplished by one function
     # (to only call spacy once)
     if any((i in step_set)
-           for i in [6, 7, 8, 9]):
+           for i in [6, 7, 8, 9, 10]):
         modComm = spacy_tagging(modComm,
                                 add_tags=(6 in step_set),
                                 remove_stopwords=(7 in step_set),
                                 lemmatize=(8 in step_set),
-                                split_sentences=(9 in step_set))
-
-    if 10 in step_set:
-        modComm = to_lowercase(modComm)
+                                split_sentences=(9 in step_set),
+                                to_lowercase=(10 in step_set))
 
     return modComm
 
