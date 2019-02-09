@@ -504,7 +504,7 @@ def extract1(comment):
             split_tagged_word(tag_word)
             for tag_word in sent.split(" ")
         ]
-        for sent in get_sentences(comment["body"])
+        for sent in get_sentences(comment)
     ]
 
     single_features = [
@@ -514,9 +514,6 @@ def extract1(comment):
 
     ret = np.zeros(173, dtype=np.float)
     ret[:29] = single_features
-
-    # Fill in LIWC (by comment ID)
-    ret[29:] = id_to_liwc_feats[comment["id"]]
 
     return ret
 
@@ -528,7 +525,10 @@ def main(args):
     for (row_num, comment) in enumerate(data):
 
         # Get the row (LIWC features are already filled in)
-        row = extract1(comment)
+        row = extract1(comment["body"])
+
+        # Fill in LIWC (by comment ID)
+        row[29:] = id_to_liwc_feats[comment["id"]]
 
         # Put category on end of row, then put row into slot
         feats[row_num] = np.concatenate((
