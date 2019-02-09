@@ -524,7 +524,7 @@ def main(args):
 
     for (row_num, comment) in enumerate(data):
 
-        # Get the row (LIWC features are already filled in)
+        # Get the row
         row = extract1(comment["body"])
 
         # Fill in LIWC (by comment ID)
