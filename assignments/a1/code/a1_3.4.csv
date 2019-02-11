@@ -1,0 +1,7 @@
+0.251375,0.282875,0.434875,0.43175,0.459125
+0.2535,0.26825,0.445,0.4445,0.465625
+0.246,0.274625,0.429,0.4125,0.46225
+0.252625,0.2825,0.43025,0.407625,0.45525
+0.264625,0.2735,0.443875,0.394375,0.46525
+2.27359154563e-07,2.37331250978e-06,0.000376279245844,0.00804983654541
+"The best classifier (#5, AdaBoost, 3.1 accuracy of 0.459) had p-values of ~2E-7, ~2E-6, ~4E-4, and ~8E-3, against the following classifiers: Linear SVC, Radial SVC, Random Forest, Multi-Layer-Perceptron.The relatively small p-values listed are highly statistically significant with all P < 0.001 - there is less than a 1 in 1000 chance that AdaBoost performs same as the competing classifiers."

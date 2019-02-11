@@ -15,7 +15,7 @@ category_numbers = {
     "Alt": 3
 }
 
-# TODO REFACTOR INTO SIBLING CONSTANTS FILE?
+
 # TODO CHANGE THIS TO RUN ON CDF
 BGL_PATH = "../wordlists/BristolNorms+GilhoolyLogie.csv"
 
@@ -268,7 +268,6 @@ num_coord_conjunctions = build_tag_counter(["CC"])
 num_past_verbs = build_tag_counter(["VBD"])
 
 
-# TODO REQUIRES PATTERN MATCHING
 def num_future_verbs(tagged_sents):
     """
     TODO DOCSTRING
