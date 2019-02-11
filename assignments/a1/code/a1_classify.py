@@ -46,10 +46,7 @@ classifiers = [
 
 def write_csv(filename, rows):
     """
-    TODO DOCSTRING
-    :param filename:
-    :param rows:
-    :return:
+    Writes rows in CSV format to a file named filename.
     """
     with open(filename, mode="w", newline="") as csv_ptr:
         csv_writer = csv.writer(csv_ptr)
@@ -59,11 +56,8 @@ def write_csv(filename, rows):
 
 def load_data_matrix(filename):
     """
-    TODO DOCSTRING
-    :param filename:
-    :return:
+    Loads data matrix from NPZ dictionary (assumed to be only item)
     """
-    # Grab data matrix from NPZ dictionary (assumed to be only item)
     return dict(np.load(filename)).popitem()[1]
 
 
@@ -295,7 +289,7 @@ def class33(X_train, X_test, y_train, y_test, i, X_1k, y_1k):
         for train_size in [1000, 32000]
     ]]
 
-    # Line 8: Q3.3.3.a: common features, explanation TODO
+    # Line 8: Q3.3.3.a: common features, explanation
     print("Data Size vs Top 5 Chosen Features")
     for train_size in [1000, 32000]:
         features = results[(5, train_size)][2]
@@ -303,21 +297,16 @@ def class33(X_train, X_test, y_train, y_test, i, X_1k, y_1k):
     print("")
     csv_rows += [[
         "For the 1K and 32K training data, the "
-        "common features are #adverbs (11), "
-        "and receptiviti_intellectual (150). "
-        "People with greater writing ability "
-        "(indicative of greater education/intellect) are probably more "
-        "likely to 'flesh-out' their communication with adverbs. "
-        "Education and intelligence have been shown to "
-        "correlate with political alignment, which probably "
-        "makes these features good indicators, "
-        "regardless of training data, "
-        "for the classifier. "
+        "common feature was receptiviti_intellectual (150). "
+        "People of higher intelligence (or wanting to appear more intelligent) "
+        "are likely to use more intellectual words. Education and intelligence "
+        "have been shown to correlate with political alignment, which probably "
+        "makes these features good indicators for the classifier. "
         "Article that summarizes various studies on intelligence vs. politics: "
         "https://www.psychologytoday.com/ca/blog/unique-everybody-else/201305/intelligence-and-politics-have-complex-relationship"
     ]]
 
-    # Line 9: Q3.3.3.b: data size vs. p-values, explanation TODO
+    # Line 9: Q3.3.3.b: data size vs. p-values, explanation
     print("Data Size vs. Avg P-Value")
     for train_size in [1000, 32000]:
 
@@ -337,17 +326,13 @@ def class33(X_train, X_test, y_train, y_test, i, X_1k, y_1k):
         print(train_size, avg_p_val)
     print("")
     csv_rows += [[
-        "P-Values are generally higher for less training data "
-        "(average p-value is 0.17 for 1K training samples, "
-        "and 0.019 for 32K training samples). "
+        "P-Values are generally higher for less training data. "
         "The p-value of a feature is inversely proportional "
         "to the predictive power of that feature. "
         "A classifier with more training data has more "
-        "information to decide the predictive "
-        "power of various features. "
-        "Therefore, it makes sense that more "
-        "training data would produce lower p-values "
-        "(features are more predictive with more training data)."
+        "information to decide the predictive power of various features. "
+        "Therefore, it makes sense that more training data would "
+        "produce lower p-values (features are more predictive with more training data)."
     ]]
 
     # Line 10: Q3.3.3.c: name top 5 features for 32K,
@@ -362,16 +347,17 @@ def class33(X_train, X_test, y_train, y_test, i, X_1k, y_1k):
         print(class_num, " ".join(str(avg_row[x]) for x in [10, 83, 96, 143, 149]))
     csv_rows += [[
         "The top 5 features for 32K training data are "
-        "11, 84, 97, 144 and 150 (1-indexed). "
+        "11, 84, 97, 144 and 150 (1-indexed, align with those given in handout). "
 
         "These correspond to #adverbs (11), liwc_motion (84), liwc_relativ (97), "
         "receptiviti_health_oriented (144), receptiviti_intellectual (150). "
 
-        "Number of Adverbs (11), liwc_relativ (97), and "
-        "receptiviti_intellectual (150) probably "
-        "correlate with education/intelligence. "
-        "As discussed in 3.3.3.a, education and "
-        "intelligence correlate with political alignment. "
+        "Number of Adverbs (11), liwc_relativ (97), and receptiviti_intellectual (150) "
+        "probably correlate with education/intelligence. "
+        "Usage of adverbs probably indicates writing ability. "
+        "Usage of relative words probably indicates more abstract thinking. "
+        "The aforementioned indicators are likely to correlate with education/intelligence."
+        "As discussed in 3.3.3.a, education and intelligence correlate with political alignment. "
 
         "liwc_motion (84) could indicate discussion about "
         "(political) movement, change and transformation. "
@@ -428,14 +414,13 @@ def class34(filename, i):
 
 
     analysis = [
-        "The best classifier (#5, AdaBoost, 3.1 accuracy of 0.459) "
-        "had p-values of ~2E-7, ~2E-6, ~4E-4, and ~8E-3, "
-        "against the following classifiers: "
-        "Linear SVC, Radial SVC, Random Forest, Multi-Layer-Perceptron."
-        "The relatively small p-values listed are highly "
-        "statistically significant with all P < 0.001 - "
-        "there is less than a 1 in 1000 chance that "
-        "AdaBoost performs same as the competing classifiers."
+        "The best classifier was AdaBoost (#5). "
+        "The p-values of competing classifiers were all statistically significant with P < 0.01 - i.e. "
+        "there is less than a 1% chance that AdaBoost performs same as the competing classifiers. "
+        "The lower p-values of the SVCs indicate that the data probably "
+        "isn't linearly seperable in either the raw basis or radial basis, "
+        "and the higher p-values of the random forest / neural network imply "
+        "that the data is probably non-linear, as the non-linear classifiers perform better on it."
     ]
 
     # CSV rows: accuracies, p_values, analysis
@@ -444,9 +429,7 @@ def class34(filename, i):
 
 def main(args):
     """
-    TODO DOCSTRING
-    :param args:
-    :return:
+    Executes experiments 3.(1,2,3,4), in order.
     """
     X_train, X_test, y_train, y_test, iBest = class31(args.input)
     X_1k, y_1k = class32(X_train, X_test, y_train, y_test, iBest)
@@ -464,5 +447,5 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # TODO : complete each classification experiment, in sequence.
+    # Complete each classification experiment, in sequence.
     main(args)

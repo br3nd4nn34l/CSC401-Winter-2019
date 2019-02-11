@@ -11,19 +11,16 @@ from spacy.tokens import Doc
 
 # region Constants and Builder Functions
 
-# TODO CHANGE THIS FOR CDF
-# indir = '/u/cs401/A1/data/'
-indir = '../data'
+# CDF data directory
+indir = '/u/cs401/A1/data/'
 
-# TODO CHANGE THIS FOR CDF
-# wordlists_dir = "/u/cs401/Wordlists"
-wordlists_dir = "../wordlists"
+# CDF wordlists directory
+wordlists_dir = "/u/cs401/Wordlists"
 
 
 def build_clitic_regex():
     """
-    TODO DOCSTRING
-    :return:
+    Builds a regex to capture the clitics specified in the assignment handout.
     """
     return re.compile("(" + "|".join(
         [
@@ -45,8 +42,7 @@ def build_clitic_regex():
 
 def build_abbrev_regex():
     """
-    TODO DOCSTRING
-    :return:
+    Builds a regex to capture the abbreviations specified in the assignment handout.
     """
     abbrev_path = os.path.join(wordlists_dir, "abbrev.english")
     with open(abbrev_path, "r") as abbrev_file:
@@ -58,9 +54,8 @@ def build_abbrev_regex():
 
 
 def build_punc_regex():
-    """
-    TODO DOCSTRING
-    :return:
+    """"
+    Builds a regex to capture punctuation characters.
     """
     return re.compile("|".join(
         re.escape(x) for x in string.punctuation
@@ -68,9 +63,8 @@ def build_punc_regex():
 
 
 def build_multi_punc_regex():
-    """
-    TODO DOCSTRING
-    :return:
+    """"
+    Builds a regex to capture multiple punctuation characters.
     """
     base_regex = build_punc_regex()
     return re.compile(f"({base_regex.pattern}){{2,}}")
@@ -78,16 +72,14 @@ def build_multi_punc_regex():
 
 def build_nlp():
     """
-    TODO DOCSTRING
-    :return:
+    Builds the Spacy NLP processor needed for the preprocessing.
     """
     return spacy.load("en", disable=["parser", "ner"])
 
 
 def build_stopwords():
     """
-    TODO DOCSTRING
-    :return:
+    Builds a set of stopwords as specified in the assignment handout.
     """
     stopwords_path = os.path.join(wordlists_dir, "StopWords")
     with open(stopwords_path, mode="r") as file:
@@ -122,13 +114,11 @@ stopwords = build_stopwords()
 
 def spacy_tokens(string):
     """
-    TODO DOCSTRING
-    :param string:
-    :return:
+    Returns a list of Spacy Token objects.
+    Accomplished as as instructed in tutorial
+    http://www.cs.toronto.edu/~frank/csc401/tutorials/csc401_A1_tut2.pdf
+    SLIDE 16
     """
-    # Tag tokens as instructed in tutorial
-    # http://www.cs.toronto.edu/~frank/csc401/tutorials/csc401_A1_tut2.pdf
-    # SLIDE 16
     doc = spacy.tokens.Doc(nlp.vocab, words=string.split())
     return nlp.tagger(doc)
 
@@ -191,9 +181,7 @@ def remove_urls(string):
 
 def split_punctuation(string):
     """
-    TODO DOCSTRING
-    :param string:
-    :return:
+    Accomplishes step 4 of the preprocessing pipeline.
     """
 
     # Determine indices of punctuation symbols
@@ -226,9 +214,7 @@ def split_punctuation(string):
 
 def split_clitics(string):
     """
-    TODO DOCSTRING
-    :param string:
-    :return:
+    Accomplishes step 5 of the preprocessing pipeline.
     """
 
     def clitic_replacer(match):
@@ -254,14 +240,21 @@ def spacy_tagging(string,
                   split_sentences,
                   to_lowercase):
     """
-    TODO DOCSTRING
-    :param string:
-    :param add_tags:
-    :param remove_stopwords:
-    :param lemmatize:
-    :param split_sentences:
-    :param to_lowercase:
-    :return:
+    Accomplishes steps 6-10 of the preprocessing pipeline.
+    These are all done in one function to avoid overhead from calling Spacy multiple times.
+    This function only needs to call Spacy once.
+
+    :param string: input string
+
+    :param add_tags: whether or not to add Spacy's POS tags to words (step 6)
+
+    :param remove_stopwords: whether or not to remove stopwords (step 7)
+
+    :param lemmatize: whether or not to lemmatize the Spacy tokens (step 8)
+
+    :param split_sentences: whether or not to newline split sentences (step 9)
+
+    :param to_lowercase: whether or not to lowercase the obtained tokens (step 10)
     """
 
     sentences = []

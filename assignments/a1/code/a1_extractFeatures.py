@@ -16,13 +16,15 @@ category_numbers = {
 }
 
 
-# TODO CHANGE THIS TO RUN ON CDF
-BGL_PATH = "../wordlists/BristolNorms+GilhoolyLogie.csv"
+# CDF path to BGL CSV
+BGL_PATH = "/u/cs401/Wordlists/BristolNorms+GilhoolyLogie.csv"
 
 
 def build_bgl_stats():
     """
-    TODO DOCSTRING
+    Builds a dictionary of form
+    {word : stats}
+    Where stats are word's Bristol/Gilhooly/Logie statistics.
     """
     with open(BGL_PATH, "r") as csv_file:
         return {
@@ -31,13 +33,15 @@ def build_bgl_stats():
         }
 
 
-# TODO CHANGE THIS TO RUN ON CDF
-WAR_PATH = "../wordlists/Ratings_Warriner_et_al.csv"
+# CDF Path to Warr. CSV
+WAR_PATH = "/u/cs401/Wordlists/Ratings_Warriner_et_al.csv"
 
 
 def build_war_stats():
     """
-    TODO DOCSTRING
+    Builds a dictionary of form
+    {word : stats}
+    Where stats are word's Warringer et al. statistics.
     """
     with open(WAR_PATH, "r") as csv_file:
         return {
@@ -48,18 +52,28 @@ def build_war_stats():
 
 def build_id_to_liwc_feats():
     """
-    TODO DOCSTRING
-    :return:
+    Builds a dictionary of form
+    {id : stats}
+    id is the ID of a comment in the training data
+    stats are the LIWC features of that comment
     """
 
     ret = {}
 
     for category in ["Alt", "Center", "Left", "Right"]:
 
-        # TODO CHANGE TO RUN ON CDF
-        with open(f"../feats/{category}_IDs.txt", "r") as id_file:
-            liwc_features = np.load(f"../feats/{category}_feats.dat.npy")
+        # Read each thing from feats
+        feats_dir = "/u/cs401/A1/feats"
 
+        # Open up IDs.txt file for category
+        ids_txt_path = os.path.join(feats_dir, f"{category}_IDs.txt")
+        with open(ids_txt_path, "r") as id_file:
+
+            # Open up LIWC file for category
+            liwc_path = os.path.join(feats_dir, f"{category}_feats.dat.npy")
+            liwc_features = np.load(liwc_path)
+
+            # Align comment ids to LIWC rows
             for (row_num, id_line) in enumerate(id_file.readlines()):
                 ret[id_line.strip()] = liwc_features[row_num]
 
@@ -81,9 +95,8 @@ punc_chars = set(string.punctuation)
 
 def get_sentences(comment):
     """
-    TODO DOCSTRING
-    :param comment:
-    :return:
+    Returns a list of sentences in comment.
+    Sentences are assumed to be newline separated.
     """
     return (
         x.strip()
@@ -93,9 +106,14 @@ def get_sentences(comment):
 
 def last_forward_slash_ind(tagged_word):
     """
-    TODO DOCSTRING
-    :param tagged_word:
-    :return:
+    Returns the last index of a forward slash in tagged_word.
+    tagged_word is of form {word}/{tag}.
+
+    If no such index is found, return -1.
+
+    This is to avoid cases where word contains a "/"
+    from improperly splitting parts of word into tag.
+
     """
 
     for i in range(1, len(tagged_word) + 1):
@@ -108,9 +126,11 @@ def last_forward_slash_ind(tagged_word):
 
 def split_tagged_word(tag_word):
     """
-    TODO DOCSTRING
-    :param tag_word:
-    :return:
+    Splits a tagged word of form {word}/{tag}
+    into a tuple of form (word, tag).
+
+    If there is no tag, return a tuple of form
+    (word, None).
     """
     slash_ind = last_forward_slash_ind(tag_word)
 
@@ -183,10 +203,11 @@ def build_tag_counter(tags):
 
 def get_valid_word_statistics(tagged_sents, word_to_stat):
     """
-    TODO DOCSTRING
-    :param tagged_sents:
-    :param word_to_stat:
-    :return:
+    Converts tagged_sents of form [[(word, tag)]]
+    into a flattened list of form [word_to_stat(word)].
+
+    If word_to_stat throws an exception,
+    no result is added to the list.
     """
 
     stats = []
@@ -202,9 +223,12 @@ def get_valid_word_statistics(tagged_sents, word_to_stat):
 
 def build_word_avg(word_to_stat):
     """
-    TODO DOCSTRING
-    :param word_to_stat:
-    :return:
+    Returns a function of the following form:
+        Input:
+            tagged_sents, of form [[(word, tag)]]
+        Output:
+            Average of the list returned from
+                get_valid_word_statistics(tagged_sents, word_to_stat)
     """
 
     def ret_func(tagged_sents):
@@ -220,9 +244,12 @@ def build_word_avg(word_to_stat):
 
 def build_word_std(word_to_stat):
     """
-    TODO DOCSTRING
-    :param word_to_stat:
-    :return:
+    Returns a function of the following form:
+        Input:
+            tagged_sents, of form [[(word, tag)]]
+        Output:
+            Standard deviation of the list returned from
+                get_valid_word_statistics(tagged_sents, word_to_stat)
     """
 
     def ret_func(tagged_sents):
@@ -270,7 +297,8 @@ num_past_verbs = build_tag_counter(["VBD"])
 
 def num_future_verbs(tagged_sents):
     """
-    TODO DOCSTRING
+    Counts the number of future-tense verbs in tagged_sents,
+    according to the specifications given in the assignment handout.
     """
     ret = 0
     for sent in tagged_sents:
@@ -299,6 +327,10 @@ num_commas = build_tag_counter([","])
 
 
 def num_multi_punc(tagged_sents):
+    """
+    :param tagged_sents: list of form [[(word, tag)]]
+    :return: number of multiple punctuation tokens in tagged_sents
+    """
     return sum(
         1
         for sent in tagged_sents
@@ -359,6 +391,8 @@ def avg_sent_length(tagged_sents):
     sentences in tagged_sents.
     """
 
+    if len(tagged_sents)
+
     total = sum(
         len(word)
         for sent in tagged_sents
@@ -370,11 +404,11 @@ def avg_sent_length(tagged_sents):
 
 def avg_token_length(tagged_sents):
     """
-    TODO DOCSTRING
+    :param tagged_sents: list of form [[(token, tag)]]
 
-    Excludes punctuation-only tokens
-    :param tagged_sents:
-    :return:
+    :return: average length of all tokens in tagged_sents,
+    excluding punctuation-only tokens.
+    0 if there are no tokens.
     """
 
     tok_lengths = [
