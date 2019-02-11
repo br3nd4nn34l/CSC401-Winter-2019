@@ -391,7 +391,8 @@ def avg_sent_length(tagged_sents):
     sentences in tagged_sents.
     """
 
-    if len(tagged_sents)
+    if not len(tagged_sents):
+        return 0
 
     total = sum(
         len(word)
