@@ -1,2 +1,2 @@
-0.39225,0.440375,0.449625,0.4575,0.459375
+0.388,0.442125,0.450625,0.458875,0.463875
 "I expected the classifier to perform with higher accuracy as it was given more training data, with diminishing returns to performance (i.e. a negative second derivative of accuracy WRT training size). This was indeed the case, as marginal accuracies decreased with more data (0.048125->0.00925->0.007875->0.001875).The diminishing accuracy returns WRT training size is probably due to the model reaching the peak of its representational power. In other words, the methodology that the model uses to make conclusions is inherently limited and cannot properly emulate the underlying distribution. Using more data to tune the parameters of such a model will only result in small accuracy gains. "

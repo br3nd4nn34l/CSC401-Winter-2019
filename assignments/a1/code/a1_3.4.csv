@@ -1,7 +1,7 @@
-0.251375,0.282875,0.434875,0.43175,0.459125
-0.2535,0.26825,0.445,0.4445,0.465625
-0.246,0.274625,0.429,0.4125,0.46225
-0.252625,0.2825,0.43025,0.407625,0.45525
-0.264625,0.2735,0.443875,0.394375,0.46525
-2.27359154563e-07,2.37331250978e-06,0.000376279245844,0.00804983654541
-"The best classifier (#5, AdaBoost, 3.1 accuracy of 0.459) had p-values of ~2E-7, ~2E-6, ~4E-4, and ~8E-3, against the following classifiers: Linear SVC, Radial SVC, Random Forest, Multi-Layer-Perceptron.The relatively small p-values listed are highly statistically significant with all P < 0.001 - there is less than a 1 in 1000 chance that AdaBoost performs same as the competing classifiers."
+0.25825,0.280875,0.445,0.4325,0.466625
+0.268375,0.262625,0.417125,0.418125,0.454
+0.25025,0.29125,0.4365,0.420375,0.46225
+0.27225,0.274,0.440625,0.449375,0.466875
+0.274375,0.278625,0.428625,0.442125,0.45875
+4.169158904671446e-06,1.3291757946691486e-06,0.0003952660238410818,0.004675656936111711
+"The best classifier was AdaBoost (#5). The p-values of competing classifiers were all statistically significant with P < 0.01 - i.e. there is less than a 1% chance that AdaBoost performs same as the competing classifiers. The lower p-values of the SVCs indicate that the data probably isn't linearly seperable in either the raw basis or radial basis, and the higher p-values of the random forest / neural network imply that the data is probably non-linear, as the non-linear classifiers perform better on it."
