@@ -15,15 +15,16 @@ def preprocess(in_sentence, language):
 	OUTPUT:
 	out_sentence: (string) the modified sentence
     """
+    # First thing to do is strip all whitespace
+    steps = [lambda sent: sent.strip()]
 
     # French requires that we split contractions first
-    steps = []
     if language == "f":
         steps += [split_french_contractions]
 
     # Rest of steps, in order
     steps += [
-        to_lowercase,
+        lambda sent : sent.lower(),
         split_punctuation,
         mark_start_end
     ]
@@ -101,14 +102,10 @@ def build_fr_contraction_splitter():
 # For splitting French contractions
 fr_contraction_splitter = build_fr_contraction_splitter()
 
+
 # endregion
 
 # region Helpers
-
-def to_lowercase(in_sentence):
-    """TODO DOCSTRING
-    """
-    return in_sentence.lower()
 
 def split_french_contractions(in_sentence):
     """
@@ -148,6 +145,5 @@ def mark_start_end(in_sentence):
     :return:
     """
     return f"SENTSTART {in_sentence} SENTEND"
-
 
 # endregion

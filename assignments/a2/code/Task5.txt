@@ -1,0 +1,365 @@
+
+Discussion :
+
+There is an increase in the 1-gram BLEU-score from 
+0.48 at 1K training samples to 
+0.50 at 15K training samples. 
+After this point the 1-gram BLEU-score decreases 
+(0.49 at 30K training samples).
+
+It should be noted that the 1-gram BLEU-score 
+is an indicator of how often the model correctly 
+guesses the individual words contained in the reference 
+sentences. There is no penalty to having words out of order, 
+making the 1-gram BLEU score a poor indicator of 
+semantic accuracy (the most useful aspect of a translator). 
+For example, the following would qualify as a perfect 1-gram BLEU score:
+
+Reference: "The bus stops at the train terminal"
+Candidate 1: "The train stops at the bus terminal" (complete semantic inversion)
+Candidate 2: "Terminal bus train stops the at the" (gibberish) 
+
+The increase in 1-gram BLEU-scores indicates that there is some benefit 
+to training the model on more sentences. However, the model 
+degrades in performance after a certain amount of training data.
+Perhaps the model is over-fitting the training data - unlikely 
+since all alignments were constructed using the 
+same number of EM iterations, 50. It's more likely that inherent flaws in 
+the model are causing this phenomenon.
+
+BLEU-scores using longer n-grams are a better measure of 
+semantic accuracy, as longer n-grams can contain more meaning.
+The model's 2-Gram and 3-Gram BLEU-scores seem to oscillate 
+between 0.292-0.308 and 0.125-0.143, respectively. 
+These deviations are relatively minor (both ranges are about ~0.02 long), 
+so this could just be statistical noise. However, it should be noted that if the 
+model was an accurate representation of the translation problem, more training data 
+should lead to better performance. Therefore, the model may be inherently flawed.
+
+
+----------Evaluation START----------
+Language Model: No Smoothing
+
+### Start of Task5_1000_Sentence_Alignment Evaluation ### 
+BLEU scores with 1-gram: (Average  0.4792)
+	0.2500
+	0.4444
+	0.6154
+	0.6429
+	0.3846
+	0.6000
+	0.3846
+	0.6250
+	0.2500
+	0.6000
+	0.5385
+	0.3846
+	0.3333
+	0.4444
+	0.4617
+	0.3834
+	0.4000
+	0.4494
+	0.2500
+	0.5429
+	0.7500
+	0.9000
+	0.5000
+	0.4706
+	0.3750
+BLEU scores with 2-gram: (Average  0.3068)
+	0.1291
+	0.2357
+	0.3203
+	0.4447
+	0.1790
+	0.4472
+	0.1790
+	0.5175
+	0.0000
+	0.3651
+	0.3669
+	0.2532
+	0.2041
+	0.2287
+	0.3146
+	0.3101
+	0.2981
+	0.3078
+	0.1508
+	0.3304
+	0.5669
+	0.7071
+	0.3397
+	0.2425
+	0.2315
+BLEU scores with 3-gram: (Average  0.1428)
+	0.0000
+	0.0000
+	0.0000
+	0.3206
+	0.0000
+	0.3684
+	0.0000
+	0.3547
+	0.0000
+	0.2554
+	0.2304
+	0.0000
+	0.0000
+	0.1484
+	0.1976
+	0.2068
+	0.2231
+	0.1742
+	0.0000
+	0.0000
+	0.3770
+	0.5000
+	0.2126
+	0.0000
+	0.0000
+---- ### End of Task5_1000_Sentence_Alignment Evaluation ### ----
+
+### Start of Task5_10000_Sentence_Alignment Evaluation ### 
+BLEU scores with 1-gram: (Average  0.4845)
+	0.3750
+	0.4444
+	0.5385
+	0.5714
+	0.3846
+	0.5000
+	0.3077
+	0.6250
+	0.5000
+	0.5000
+	0.6154
+	0.3077
+	0.4444
+	0.3889
+	0.4617
+	0.3834
+	0.4000
+	0.4993
+	0.4167
+	0.4524
+	0.7500
+	0.9000
+	0.5000
+	0.4706
+	0.3750
+BLEU scores with 2-gram: (Average  0.2923)
+	0.1581
+	0.2357
+	0.2996
+	0.2965
+	0.1790
+	0.4082
+	0.1601
+	0.4226
+	0.0000
+	0.2357
+	0.3922
+	0.1601
+	0.2357
+	0.2139
+	0.3146
+	0.2532
+	0.2981
+	0.3245
+	0.2752
+	0.3016
+	0.5669
+	0.7071
+	0.3397
+	0.2970
+	0.2315
+BLEU scores with 3-gram: (Average  0.1251)
+	0.0000
+	0.0000
+	0.0000
+	0.0000
+	0.0000
+	0.3467
+	0.0000
+	0.3099
+	0.0000
+	0.0000
+	0.2409
+	0.0000
+	0.0000
+	0.1419
+	0.1976
+	0.1807
+	0.2231
+	0.0000
+	0.0000
+	0.2175
+	0.3770
+	0.5000
+	0.2126
+	0.1805
+	0.0000
+---- ### End of Task5_10000_Sentence_Alignment Evaluation ### ----
+
+### Start of Task5_15000_Sentence_Alignment Evaluation ### 
+BLEU scores with 1-gram: (Average  0.5002)
+	0.3750
+	0.4444
+	0.6154
+	0.5000
+	0.3846
+	0.6000
+	0.3846
+	0.6250
+	0.5000
+	0.4000
+	0.6154
+	0.3846
+	0.4444
+	0.3889
+	0.4617
+	0.4600
+	0.5000
+	0.5493
+	0.3333
+	0.5429
+	0.7500
+	0.9000
+	0.5000
+	0.4706
+	0.3750
+BLEU scores with 2-gram: (Average  0.3088)
+	0.1581
+	0.2357
+	0.4529
+	0.1961
+	0.1790
+	0.4472
+	0.1790
+	0.5175
+	0.0000
+	0.2108
+	0.3922
+	0.2532
+	0.2357
+	0.2139
+	0.3146
+	0.3397
+	0.4082
+	0.3403
+	0.1741
+	0.3304
+	0.5669
+	0.7071
+	0.3397
+	0.2970
+	0.2315
+BLEU scores with 3-gram: (Average  0.1390)
+	0.0000
+	0.0000
+	0.3341
+	0.0000
+	0.0000
+	0.3684
+	0.0000
+	0.3547
+	0.0000
+	0.0000
+	0.2409
+	0.0000
+	0.0000
+	0.1419
+	0.1976
+	0.2198
+	0.3467
+	0.0000
+	0.0000
+	0.0000
+	0.3770
+	0.5000
+	0.2126
+	0.1805
+	0.0000
+---- ### End of Task5_15000_Sentence_Alignment Evaluation ### ----
+
+### Start of Task5_30000_Sentence_Alignment Evaluation ### 
+BLEU scores with 1-gram: (Average  0.4932)
+	0.3750
+	0.4444
+	0.4615
+	0.5714
+	0.3077
+	0.6000
+	0.4615
+	0.6250
+	0.3750
+	0.4000
+	0.6154
+	0.3846
+	0.4444
+	0.3889
+	0.4617
+	0.4600
+	0.5000
+	0.4993
+	0.4167
+	0.5429
+	0.7500
+	0.9000
+	0.5000
+	0.4706
+	0.3750
+BLEU scores with 2-gram: (Average  0.3025)
+	0.1581
+	0.2357
+	0.2774
+	0.2097
+	0.1601
+	0.4472
+	0.1961
+	0.5175
+	0.0000
+	0.2108
+	0.3922
+	0.2532
+	0.2357
+	0.2139
+	0.3146
+	0.3397
+	0.4082
+	0.3245
+	0.1946
+	0.3304
+	0.5669
+	0.7071
+	0.3397
+	0.2970
+	0.2315
+BLEU scores with 3-gram: (Average  0.1256)
+	0.0000
+	0.0000
+	0.0000
+	0.0000
+	0.0000
+	0.3684
+	0.0000
+	0.3547
+	0.0000
+	0.0000
+	0.2409
+	0.0000
+	0.0000
+	0.1419
+	0.1976
+	0.2198
+	0.3467
+	0.0000
+	0.0000
+	0.0000
+	0.3770
+	0.5000
+	0.2126
+	0.1805
+	0.0000
+---- ### End of Task5_30000_Sentence_Alignment Evaluation ### ----

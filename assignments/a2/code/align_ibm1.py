@@ -2,7 +2,11 @@ from lm_train import *
 from log_prob import *
 from preprocess import *
 from math import log
+
+from collections import Counter
+
 import os
+
 
 def align_ibm1(train_dir, num_sentences, max_iter, fn_AM):
     """
@@ -24,22 +28,85 @@ def align_ibm1(train_dir, num_sentences, max_iter, fn_AM):
 	
 			LM['house']['maison'] = 0.5
 	"""
-    AM = {}
-    
+
     # Read training data
-    
-    
+    sent_pairs = list(read_sentences(train_dir, num_sentences))
+
     # Initialize AM uniformly
+    AM = initialize({}, sent_pairs)
 
-    
     # Iterate between E and M steps
+    for i in range(max_iter):
+        em_step(AM, sent_pairs)
 
-    
+    # Save Model
+    with open(fn_AM + ".pickle", 'wb') as handle:
+        pickle.dump(AM, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     return AM
-    
+
+
 # ------------ Support functions --------------
-def read_hansard(train_dir, num_sentences):
+
+def get_paired_doc_paths(data_dir):
+    """
+    TODO DOCSTRING
+    :param data_dir:
+    :return:
+    """
+
+    # All of these are of form *.e
+    english_paths = get_lang_file_paths(data_dir, "e")
+
+    # Remove the .e from the above
+    prefixes = set(
+        os.path.splitext(p)[0]
+        for p in english_paths
+    )
+
+    # Look for the corresponding french .f file.
+    # If it exists, return the pair
+    for prefix in prefixes:
+
+        e_path = f"{prefix}.e"
+        f_path = f"{prefix}.f"
+
+        if os.path.isfile(e_path) and os.path.isfile(f_path):
+            yield (e_path, f_path)
+
+
+def get_paired_sentences(data_dir):
+    """
+    TODO DOCSTRING
+    :param data_dir:
+    :return:
+    """
+    for (e_path, f_path) in get_paired_doc_paths(data_dir):
+        with open(e_path, "r") as e_file, \
+                open(f_path, "r") as f_file:
+
+            for (e_sent, f_sent) in zip(e_file.readlines(),
+                                        f_file.readlines()):
+                e_proc = preprocess(e_sent, "e")
+                f_proc = preprocess(f_sent, "f")
+
+                yield (e_proc, f_proc)
+
+
+def limited(iterable, max_iters):
+    """
+    TODO DOCSTRING
+    :param iterable:
+    :param max_iters:
+    :return:
+    """
+
+    # Zip will continue until shortest iterable is exhausted
+    for (i, x) in zip(range(max_iters), iterable):
+        yield x
+
+
+def read_sentences(train_dir, num_sentences):
     """
 	Read up to num_sentences from train_dir.
 	
@@ -54,18 +121,126 @@ def read_hansard(train_dir, num_sentences):
 	
 	Make sure to read the files in an aligned manner.
 	"""
-    # TODO
+    return limited(
+        get_paired_sentences(train_dir),
+        num_sentences
+    )
 
-def initialize(eng, fre):
+
+def alignment_get(model, e_word, f_word):
+    """
+    TODO DOCSTRING
+    :param model:
+    :param e_word:
+    :param f_word:
+    :return:
+    """
+    try:
+        return get_dict_branch(model, (e_word, f_word))
+    except:
+        return 0
+
+
+def alignment_set(model, e_word, f_word, value):
+    """
+    TODO DOCSTRING
+    :param model:
+    :param e_word:
+    :param f_word:
+    :param value:
+    :return:
+    """
+    set_dict_branch(model, (e_word, f_word), value)
+
+
+def initialize(model, paired_sents):
     """
 	Initialize alignment model uniformly.
-	Only set non-zero probabilities where word pairs appear in corresponding sentences.
+	Only set non-zero probabilities where
+	word pairs appear in corresponding sentences.
 	"""
-	# TODO
-    
-def em_step(t, eng, fre):
+
+    # Dictionary of form {
+    #   e_word : {
+    #       f_word : number of times an
+    #           e_sentence containing e_word
+    #           was paired to a
+    #           f_sentence containing f_word
+    #   }
+    # }
+    totals = {}
+
+    for (e_sent, f_sent) in paired_sents:
+
+        # Ignore SENTSTART, SENTEND
+        # https://piazza.com/class/jpzxwr3vuqa1tn?cid=457
+        e_word_lst = list(e_sent.split())[1:-1]
+        f_word_lst = list(f_sent.split())[1:-1]
+
+        for e_word in e_word_lst:
+            for f_word in f_word_lst:
+                increment_dict_branch(totals, (e_word, f_word), 1)
+
+    for (e_word, f_dct) in totals.items():
+        num_f_words = len(f_dct)
+        for f_word in f_dct:
+            set_dict_branch(model, (e_word, f_word), 1 / num_f_words)
+
+    set_dict_branch(model, ("SENTSTART", "SENTSTART"), 1)
+    set_dict_branch(model, ("SENTEND", "SENTEND"), 1)
+
+    return model
+
+
+def em_step(model, paired_sents):
     """
 	One step in the EM algorithm.
 	Follows the pseudo-code given in the tutorial slides.
 	"""
-	# TODO
+
+    total = {}
+
+    # Flipping this from pseudocode
+    # to be indexed (e, f) instead of (f, e)
+    t_count = {}
+
+    for (e_sent, f_sent) in paired_sents:
+
+        # Ignore SENTSTART, SENTEND
+        # https://piazza.com/class/jpzxwr3vuqa1tn?cid=490
+        e_counter = Counter(e_sent.split()[1:-1])
+        f_counter = Counter(f_sent.split()[1:-1])
+
+        for f_word in f_counter:
+
+            denom_c = sum(
+                alignment_get(model, e_word, f_word) * f_counter[f_word]
+                for e_word in e_counter
+            )
+
+            for e_word in e_counter:
+                P_f_given_e = alignment_get(model, e_word, f_word)
+
+                incrementation = (P_f_given_e *
+                                  f_counter[f_word] *
+                                  e_counter[e_word]) / denom_c
+
+                # Must index backwards (e, f) instead of (f, e)
+                # (see note above)
+                increment_dict_branch(
+                    t_count, (e_word, f_word),
+                    incrementation
+                )
+
+                increment_dict_branch(
+                    total, (e_word,),
+                    incrementation
+                )
+
+    for e_word in total:
+        for f_word in t_count[e_word]:
+            alignment_set(
+                model,
+                e_word, f_word,
+                t_count[e_word][f_word] / total[e_word]
+            )
