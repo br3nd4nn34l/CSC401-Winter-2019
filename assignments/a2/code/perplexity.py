@@ -38,6 +38,8 @@ def preplexity(LM, test_dir, language, smoothing = False, delta = 0):
         pp = 2**(-pp/N)
     return pp
 
-#test TODO UNCOMMENT AND TEST
-# test_LM = lm_train("lm_train_testdir/", "e", "e_temp")
-# print(preplexity(test_LM, "lm_train_testdir/", "e"))
+try:
+    test_LM = lm_train("lm_train_testdir/", "e", "e_temp")
+    print(preplexity(test_LM, "lm_train_testdir/", "e"))
+except:
+    pass

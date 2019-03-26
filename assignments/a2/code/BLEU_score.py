@@ -43,14 +43,12 @@ def BLEU_score(candidate, references, n, brevity=False):
 
 def brevity_penalty(candidate, references):
     """
-    TODO DOCSTRING
+    Calculates the brevity penalty between a
+    candidate sentence and multiple reference
+    sentences, as described here:
 
     http://www.cs.toronto.edu/~frank/csc401/lectures/6_SMT_pt3.pdf
     (Slide 41)
-
-    :param candidate:
-    :param references:
-    :return:
     """
 
     # Reference of closest length
@@ -75,15 +73,12 @@ def brevity_penalty(candidate, references):
 
 def n_gram_precision(candidate, references, n):
     """
-    TODO DOCSTRING
+    Calculates the n-gram precision of a candidate
+    sentence against a list of reference sentences,
+    as described here:
 
     http://www.cs.toronto.edu/~frank/csc401/lectures/6_SMT_pt3.pdf
     (Slide 37)
-
-    :param candidate:
-    :param references:
-    :param n:
-    :return:
     """
 
     # n-grams of the candidate
@@ -111,7 +106,7 @@ def n_gram_precision(candidate, references, n):
 
 def get_n_grams(tokens, n):
     """
-    TODO DOCSTRING
+    Yields the n-grams from a list of tokens
     """
     last_tok_ind = len(tokens) - n
     for i in range(last_tok_ind + 1):

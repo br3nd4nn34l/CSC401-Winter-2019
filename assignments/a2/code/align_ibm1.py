@@ -30,14 +30,14 @@ def align_ibm1(train_dir, num_sentences, max_iter, fn_AM):
 	"""
 
     # Read training data
-    sent_pairs = list(read_sentences(train_dir, num_sentences))
+    sent_pairs = list(read_hansard(train_dir, num_sentences))
 
     # Initialize AM uniformly
-    AM = initialize({}, sent_pairs)
+    AM = initialize_original({}, sent_pairs)
 
     # Iterate between E and M steps
     for i in range(max_iter):
-        em_step(AM, sent_pairs)
+        em_step_original(AM, sent_pairs)
 
     # Save Model
     with open(fn_AM + ".pickle", 'wb') as handle:
@@ -46,79 +46,21 @@ def align_ibm1(train_dir, num_sentences, max_iter, fn_AM):
     return AM
 
 
-# ------------ Support functions --------------
+# region Support Functions (EXPOSED TO TESTS)
 
-def get_paired_doc_paths(data_dir):
-    """
-    TODO DOCSTRING
-    :param data_dir:
-    :return:
-    """
-
-    # All of these are of form *.e
-    english_paths = get_lang_file_paths(data_dir, "e")
-
-    # Remove the .e from the above
-    prefixes = set(
-        os.path.splitext(p)[0]
-        for p in english_paths
-    )
-
-    # Look for the corresponding french .f file.
-    # If it exists, return the pair
-    for prefix in prefixes:
-
-        e_path = f"{prefix}.e"
-        f_path = f"{prefix}.f"
-
-        if os.path.isfile(e_path) and os.path.isfile(f_path):
-            yield (e_path, f_path)
-
-
-def get_paired_sentences(data_dir):
-    """
-    TODO DOCSTRING
-    :param data_dir:
-    :return:
-    """
-    for (e_path, f_path) in get_paired_doc_paths(data_dir):
-        with open(e_path, "r") as e_file, \
-                open(f_path, "r") as f_file:
-
-            for (e_sent, f_sent) in zip(e_file.readlines(),
-                                        f_file.readlines()):
-                e_proc = preprocess(e_sent, "e")
-                f_proc = preprocess(f_sent, "f")
-
-                yield (e_proc, f_proc)
-
-
-def limited(iterable, max_iters):
-    """
-    TODO DOCSTRING
-    :param iterable:
-    :param max_iters:
-    :return:
-    """
-
-    # Zip will continue until shortest iterable is exhausted
-    for (i, x) in zip(range(max_iters), iterable):
-        yield x
-
-
-def read_sentences(train_dir, num_sentences):
+def read_hansard(train_dir, num_sentences):
     """
 	Read up to num_sentences from train_dir.
-	
+
 	INPUTS:
 	train_dir : 	(string) The top-level directory name containing data
 					e.g., '/u/cs401/A2_SMT/data/Hansard/Testing/'
 	num_sentences : (int) the maximum number of training sentences to consider
-	
-	
+
+
 	Make sure to preprocess!
 	Remember that the i^th line in fubar.e corresponds to the i^th line in fubar.f.
-	
+
 	Make sure to read the files in an aligned manner.
 	"""
     return limited(
@@ -127,37 +69,31 @@ def read_sentences(train_dir, num_sentences):
     )
 
 
-def alignment_get(model, e_word, f_word):
-    """
-    TODO DOCSTRING
-    :param model:
-    :param e_word:
-    :param f_word:
-    :return:
-    """
-    try:
-        return get_dict_branch(model, (e_word, f_word))
-    except:
-        return 0
-
-
-def alignment_set(model, e_word, f_word, value):
-    """
-    TODO DOCSTRING
-    :param model:
-    :param e_word:
-    :param f_word:
-    :param value:
-    :return:
-    """
-    set_dict_branch(model, (e_word, f_word), value)
-
-
-def initialize(model, paired_sents):
+def initialize(eng, fre):
     """
 	Initialize alignment model uniformly.
-	Only set non-zero probabilities where
-	word pairs appear in corresponding sentences.
+	Only set non-zero probabilities where word pairs appear in corresponding sentences.
+	"""
+    return initialize_original({}, zip(eng, fre))
+
+
+def em_step(t, eng, fre):
+    """
+	One step in the EM algorithm.
+	Follows the pseudo-code given in the tutorial slides.
+	"""
+    return em_step_original(t, zip(eng, fre))
+
+
+# endregion
+
+
+# region HELPER FUNCTIONS
+
+
+def initialize_original(model, paired_sents):
+    """
+	(ORIGINAL VERSION OF initialize HANDED IN, HAD TO BE MODIFIED FOR REMARK)
 	"""
 
     # Dictionary of form {
@@ -192,10 +128,9 @@ def initialize(model, paired_sents):
     return model
 
 
-def em_step(model, paired_sents):
+def em_step_original(model, paired_sents):
     """
-	One step in the EM algorithm.
-	Follows the pseudo-code given in the tutorial slides.
+    (ORIGINAL VERSION OF em_step HANDED IN, HAD TO BE MODIFIED FOR REMARK)
 	"""
 
     total = {}
@@ -244,3 +179,79 @@ def em_step(model, paired_sents):
                 e_word, f_word,
                 t_count[e_word][f_word] / total[e_word]
             )
+
+
+def get_paired_doc_paths(data_dir):
+    """
+    Yields the name-aligned document paths in data_dir,
+    in the form: (english, french)
+    [a.e, b.e, a.f, b.f] -> (a.e, a.f), (b.e, b.f)
+    """
+
+    # All of these are of form *.e
+    english_paths = get_lang_file_paths(data_dir, "e")
+
+    # Remove the .e from the above
+    prefixes = set(
+        os.path.splitext(p)[0]
+        for p in english_paths
+    )
+
+    # Look for the corresponding french .f file.
+    # If it exists, return the pair
+    for prefix in prefixes:
+
+        e_path = f"{prefix}.e"
+        f_path = f"{prefix}.f"
+
+        if os.path.isfile(e_path) and os.path.isfile(f_path):
+            yield (e_path, f_path)
+
+
+def get_paired_sentences(data_dir):
+    """
+    Yields the aligned sentences of the documents
+    in data_dir in the following form:
+    (english, french)
+    """
+    for (e_path, f_path) in get_paired_doc_paths(data_dir):
+        with open(e_path, "r") as e_file, \
+                open(f_path, "r") as f_file:
+
+            for (e_sent, f_sent) in zip(e_file.readlines(),
+                                        f_file.readlines()):
+                e_proc = preprocess(e_sent, "e")
+                f_proc = preprocess(f_sent, "f")
+
+                yield (e_proc, f_proc)
+
+
+def limited(iterable, max_iters):
+    """
+    Limits an iterable to only produce max_iters items.
+    """
+    # Zip will continue until shortest iterable is exhausted
+    for (i, x) in zip(range(max_iters), iterable):
+        yield x
+
+
+def alignment_get(model, e_word, f_word):
+    """
+    Attempts to get the value of the
+    alignment for model[e_word][f_word].
+
+    Returns 0 if no such alignment exists.
+    """
+    try:
+        return get_dict_branch(model, (e_word, f_word))
+    except:
+        return 0
+
+
+def alignment_set(model, e_word, f_word, value):
+    """
+    Sets the value of the alignment for model[e_word][f_word].
+    """
+    set_dict_branch(model, (e_word, f_word), value)
+
+# endregion

@@ -5,22 +5,32 @@ import os
 
 def get_n_grams(tokens, n):
     """
-    TODO DOCSTRING
+    Yields the n-grams from a list of tokens.
     """
     last_tok_ind = len(tokens) - n
     for i in range(last_tok_ind + 1):
         yield tuple(tokens[i:i + n])
 
+
 def get_dict_branch(dct, branch):
     """
-    TODO DOCSTRING
+    Gets the value in a branching dictionary.
+    Throws an exception on invalid branches.
+    {k1 : {k2 : v}} -> (v is on branch [k1, k2])
     """
     cur = dct
     for key in branch:
         cur = cur[key]
     return cur
 
+
 def set_dict_branch(dct, branch, value):
+    """
+    Sets the value in a branching dictionary.
+    Creates any missing intermediate dictionaries.
+    {k1 : {k2 : v}} -> (v is on branch [k1, k2])
+    """
+
     *front, last = branch
 
     cur = dct
@@ -34,7 +44,9 @@ def set_dict_branch(dct, branch, value):
 
 def increment_dict_branch(dct, branch, amount):
     """
-    TODO DOCSTRING
+    Increments the value in a branching dictionary.
+    If the branch is missing, starts the value at 0 and increments.
+    {k1 : {k2 : v}} -> (v is on branch [k1, k2])
     """
     try:
         cur_amt = get_dict_branch(dct, branch)
@@ -45,10 +57,9 @@ def increment_dict_branch(dct, branch, amount):
 
 def add_gram_to_lang_model(model, gram):
     """
-    TODO DOCSTRING
-    :param model:
-    :param gram:
-    :return:
+    Adds the given n-gram (either 1 or 2-gram) to the language model.
+    1-grams are placed on the uni branch.
+    2-grams are placed on the bi branch.
     """
 
     # Construct the branch to descend
@@ -65,7 +76,9 @@ def add_gram_to_lang_model(model, gram):
 
 def add_file_to_lang_model(model, file_path, language):
     """
-    TODO DOCSTRING
+    Adds all the (preprocessed) sentences
+    from the file at file_path to the
+    language model (adds unigrams and bigrams)
     """
     with open(file_path, "r") as lang_file:
         for sentence in lang_file.readlines():
@@ -79,10 +92,8 @@ def add_file_to_lang_model(model, file_path, language):
 
 def get_lang_file_paths(data_dir, language):
     """
-    TODO DOCSTRING
-    :param data_dir:
-    :param language:
-    :return:
+    Yields all the file paths in data_dir
+    that correspond (end in) language.
     """
     for file_name in os.listdir(data_dir):
         file_path = os.path.join(data_dir, file_name)

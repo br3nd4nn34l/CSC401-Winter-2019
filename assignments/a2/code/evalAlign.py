@@ -155,9 +155,9 @@ def _get_BLEU_scores(eng_decoded, eng, google_refs, n):
 
 def geometric_mean(values):
     """
-    TODO DOCSTRING
-    :param values:
-    :return:
+    Computes the geometric mean of values using
+    the sum-of-logs technique
+    to avoid overflow/underflow issues
     """
 
     def ln(n):
@@ -172,7 +172,12 @@ def geometric_mean(values):
 
 def load_alignment_models(train_dir, out_dir):
     """
-    TODO DOCSTRING
+    Attempts to load the appropriate alignment models from out_dir.
+    Models are loaded into a dictionary of form {name : model}
+
+    If a model does not exist,
+    trains an alignment model using the data in train_dir,
+    and pickles the model in out_dir.
     """
     ret = {}
 
@@ -190,11 +195,9 @@ def load_alignment_models(train_dir, out_dir):
 
 def load_test_sentences(test_dir):
     """
-    TODO DOCSTRING
-    :param test_dir:
-    :return:
+    Loads the test sentences from test_dir, in the form
+    [[(french, english_ref, google_english_ref)]]
     """
-
     ret = []
 
     for (file_name, lang) in [("Task5.f", "f"), ("Task5.e", "e"), ("Task5.google.e", "e")]:

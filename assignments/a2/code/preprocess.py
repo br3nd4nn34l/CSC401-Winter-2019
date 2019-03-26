@@ -65,7 +65,7 @@ splittable_punc_chars = {
 
 def build_fr_contraction_splitter():
     """
-    TODO DOCSTRING
+    Builds a regex used to split french contractions.
     """
 
     # List of contractions given in assignment handout
@@ -109,7 +109,8 @@ fr_contraction_splitter = build_fr_contraction_splitter()
 
 def split_french_contractions(in_sentence):
     """
-    TODO DOCSTRING
+    Splits the French contractions of in_sentence,
+    in the manner described in the assignment handout.
     """
     # Split on the basis of the french contraction regex,
     # then join together with spaces
@@ -120,7 +121,8 @@ def split_french_contractions(in_sentence):
 
 def split_punctuation(in_sentence):
     """
-    TODO DOCSTRING
+    Splits the punctuation of in_sentence,
+    in the manner described in the assignment handout
     """
 
     # Indices punctuation characters that we can split on
@@ -140,9 +142,7 @@ def split_punctuation(in_sentence):
 
 def mark_start_end(in_sentence):
     """
-    TODO DOCSTRING
-    :param in_sentence:
-    :return:
+    Marks in_sentence with SENTSTART and SENTEND
     """
     return f"SENTSTART {in_sentence} SENTEND"
 
