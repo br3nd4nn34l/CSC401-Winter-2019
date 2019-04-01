@@ -4,8 +4,17 @@ import os, fnmatch
 import random
 from scipy.special import logsumexp
 
+np.random.seed(401)
+
 dataDir = '/u/cs401/A3/data/'
 
+# TODO CHANGE FOR RUNNING ON CDF
+dataDir = '../data/'
+
+# region NaN Management TODO REMOVE THIS ON BUGFIXES
+
+
+# endregion
 
 class theta:
     def __init__(self, name, M=8, d=13):
@@ -17,16 +26,7 @@ class theta:
 
 # region Tensor Standardization Functions
 
-
-def is_vector(x):
-    """
-    Return true if x is a vector, i.e.
-    Only one axis in x is not length 1.
-    """
-    return max(x.shape) == np.product(x.shape)
-
-
-def reshape_x_to_X(x, theta):
+def reshape_x_to_X(x, model):
     """
     If x is a d-vector
         Reshape to (1, 1, d)
@@ -35,10 +35,10 @@ def reshape_x_to_X(x, theta):
     If x is a 3D tensor, checks if it is of shape (T, 1, d)
     """
 
-    d = theta.mu.shape[1]
+    d = model.mu.shape[1]
     squeezed = np.squeeze(x)
 
-    assert squeezed.shape in [1, 2, 3]
+    assert len(squeezed.shape) in [1, 2, 3]
 
     if len(squeezed.shape) == 1:
         assert squeezed.shape[0] == d
@@ -55,7 +55,7 @@ def reshape_x_to_X(x, theta):
     return x.reshape((T, 1, d))
 
 
-def reshape_m_to_categories(m, theta):
+def reshape_m_to_categories(m, model):
     """
     If m is a number
         Reshape to array of size (1,)
@@ -72,35 +72,36 @@ def reshape_m_to_categories(m, theta):
     assert len(squeezed.shape) == 1
 
     # Every element must be less than number of categories
-    M = theta.omega.shape[0]
-    assert np.any(squeezed > M)
+    M = model.omega.shape[0]
+    assert np.all(squeezed < M)
 
     return squeezed
 
 
 # endregion
 
-
 # region Log BMX Functions
 
-def sum_xn2_over_smn(X, categories, theta):
+
+def sum_xn2_over_smn(X, categories, model):
     """
     :param X: array of shape (T, 1, d)
     :param categories: array of category indices
-    :param theta: the model
+    :param model: the model
 
     Let k = length of categories
-    Returns k-vector where each element is aligned to categories.
-
-    m-th element is equal to:
+    Let k = length of categories
+    Returns (T,k) tensor where (t, m)-th element is equal to:
     Sum(n=1->d){ x[n]^2 / sig_m[n] }
     """
+
+    # TODO WHY IS THIS SO HUGE?
 
     # (t, 1, n)-th element is x_t[n]^2
     numerators = X ** 2  # Shape (T, 1, d)
 
     # (m, n)-th element is sig_m[n]
-    denominators = theta.Sigma[categories]  # Shape (k, d)
+    denominators = model.Sigma[categories]  # Shape (k, d)
 
     # (t, m, n)-th element is x_t[n]^2 / sig_m[n]
     terms = numerators / denominators  # Shape: (T, 1, d) / (_, k, d) -> (T, k, d)
@@ -112,29 +113,27 @@ def sum_xn2_over_smn(X, categories, theta):
     return np.sum(terms, axis=2)  # Shape: (T, k)
 
 
-def sum_xn_umn_over_smn(X, categories, theta):
+def sum_xn_umn_over_smn(X, categories, model):
     """
     :param X: array of shape (T, 1, d)
     :param categories: array of category indices
-    :param theta: the model
+    :param model: the model
 
     Let k = length of categories
-    Returns k-vector where each element is aligned to categories.
-
-    m-th element is equal to:
-    Sum(n=1->d){ x[n] * mu_m[n] / sig_m[n] }
+    Returns (T,k) tensor where (t, m)-th element is equal to:
+    Sum(n=1->d){ x_t[n] * mu_m[n] / sig_m[n] }
     """
     # (t, 1, n)-th element is x_t[n]
     xtn_arr = X  # Shape (T, 1, d)
 
     # (m, n)-th element is mu_m[n]
-    mu_m_arr = theta.mu[categories]  # Shape (k, d)
+    mu_m_arr = model.mu[categories]  # Shape (k, d)
 
     # (t, m, n)-th element is x_t[n] * mu_m[n]
     numerators = xtn_arr * mu_m_arr  # Shape: (T, 1, d) * (_, k, d) -> (T, k, d)
 
     # (m, n)-th element is sig_m[n]
-    denominators = theta.Sigma[categories]  # Shape (k, d)
+    denominators = model.Sigma[categories]  # Shape (k, d)
 
     # (t, m, n)-th element is (x_t[n] * mu_m[n]) / sig_m[n]
     terms = numerators / denominators  # Shape: (T, k, d) * (_, k, d) -> (T, k, d)
@@ -146,10 +145,10 @@ def sum_xn_umn_over_smn(X, categories, theta):
     return np.sum(terms, axis=2)  # Shape (T, k)
 
 
-def sum_umn2_over_smn(categories, theta):
+def sum_umn2_over_smn(categories, model):
     """
     :param categories: array of category indices
-    :param theta: the model
+    :param model: the model
 
     Let k = length of categories
     Returns k-vector where each element is aligned to categories.
@@ -158,10 +157,10 @@ def sum_umn2_over_smn(categories, theta):
     Sum(n=1->d){ mu_m[n]^2 / sig_m[n] }
     """
     # (m, n)-th term is mu_m[n]^2
-    numerators = theta.mu[categories] ** 2  # Shape: (k, d)
+    numerators = model.mu[categories] ** 2  # Shape: (k, d)
 
     # (m, n)-th term is sig_m[n]
-    denominators = theta.Sigma[categories]  # Shape: (k, d)
+    denominators = model.Sigma[categories]  # Shape: (k, d)
 
     # (m, n)-th term is mu_m[n]^2 / sig_m[n]
     terms = numerators / denominators  # Shape: (k, d)
@@ -172,10 +171,10 @@ def sum_umn2_over_smn(categories, theta):
     return np.sum(terms, axis=1)  # Shape (k,)
 
 
-def sum_log_smn(categories, theta):
+def sum_log_smn(categories, model):
     """
     :param categories: array of category indices
-    :param theta: the model
+    :param model: the model
 
     Let k = length of categories
     Returns k-vector where each element is aligned to categories.
@@ -184,7 +183,7 @@ def sum_log_smn(categories, theta):
     Sum(n=1->d){ log(sig_m[n]) }
     """
     # (m, n)-th term is sig_m[n]
-    sig_m = theta.Sigma[categories]  # Shape: (k, d)
+    sig_m = model.Sigma[categories]  # Shape: (k, d)
 
     # (m, n)-th term is log(sig_m[n])
     log_sig_m = np.log(sig_m)  # Shape: (k, d)
@@ -195,10 +194,10 @@ def sum_log_smn(categories, theta):
     return np.sum(log_sig_m, axis=1)  # Shape: (k,)
 
 
-def m_term_of_log_bmx(categories, theta):
+def m_term_of_log_bmx(categories, model):
     """
     :param categories: array of category indices
-    :param theta: the model
+    :param model: the model
 
     Let k = length of categories
     Returns k-vector where each element is aligned to categories.
@@ -209,20 +208,20 @@ def m_term_of_log_bmx(categories, theta):
     d * log(2pi)
     """
 
-    d = theta.mu.shape[1]
+    d = model.mu.shape[1]
     d_log_2pi = d * np.log(2 * np.pi)
 
     # Shape: (k,)
-    return sum_umn2_over_smn(categories, theta) + \
-           sum_log_smn(categories, theta) + \
+    return sum_umn2_over_smn(categories, model) + \
+           sum_log_smn(categories, model) + \
            d_log_2pi
 
 
-def x_term_of_log_bmx(X, categories, theta):
+def x_term_of_log_bmx(X, categories, model):
     """
     :param X: array of shape (T, 1, d)
     :param categories: array of category indices
-    :param theta: the model
+    :param model: the model
 
     Let k = length of categories
     Returns k-vector where each element is aligned to categories.
@@ -232,8 +231,8 @@ def x_term_of_log_bmx(X, categories, theta):
     2 * Sum(n=1->d){ x[n] * mu_m[n] / sig_m[n] }
     """
     # Shape (T, k)
-    return sum_xn2_over_smn(X, categories, theta) - \
-           (2 * sum_xn_umn_over_smn(X, categories, theta))
+    return sum_xn2_over_smn(X, categories, model) - \
+           (2 * sum_xn_umn_over_smn(X, categories, model))
 
 
 def log_b_m_x(m, x, myTheta, preComputedForM=[]):
@@ -279,7 +278,7 @@ def log_sum_wk_bkx(omega_all_cats, log_b_xt_all_cats):
     log[Sum(k=1->M){ omega_k * b_k(xt) )}]
     """
 
-    log_wk = np.log(omega_all_cats)  # Shape (M,)
+    log_wk = np.log(omega_all_cats).flatten()  # Shape (M,)
 
     # logsum(w_k * b_k)
     # = logsum(exp(log(w_k * b_k)))
@@ -293,17 +292,17 @@ def log_sum_wk_bkx(omega_all_cats, log_b_xt_all_cats):
     return logsumexp(terms, axis=1)
 
 
-def log_wm(categories, theta):
+def log_wm(categories, model):
     """
     :param categories: given categories
-    :param theta: the model containing omega
+    :param model: the model containing omega
 
     For k-vector of categories,
     returns k-vector where m-th element is:
 
     log(omega_m)
     """
-    omega_m = theta.omega[categories]
+    omega_m = model.omega[categories].flatten()
     return np.log(omega_m)  # Shape: (k,)
 
 
@@ -313,7 +312,6 @@ def log_p_m_x(m, x, myTheta):
     m^{th} component given d-dimensional vector x, and model myTheta
     See equation 2 of handout
     '''
-
     # All category numbers
     M = myTheta.omega.shape[0]
     all_cats = reshape_m_to_categories(np.arange(M), myTheta)  # Shape (M,)
@@ -331,10 +329,10 @@ def log_p_m_x(m, x, myTheta):
     # log_bmx for categories
     log_bmx_all_cats = log_b_m_x(all_cats, X, myTheta, pre_all_cats)  # Shape (T, M)
 
-    # Shape: (k,) + (T, k) + (T, ) -> (T, k)
-    return log_wm(these_cats, theta) + \
-           log_b_m_x(these_cats, X, myTheta, pre_these_cats) + \
-           log_sum_wk_bkx(myTheta.omega, log_bmx_all_cats)
+    # Shape: (k,) + (T, k) - (T, 1) -> (T, k)
+    return log_wm(these_cats, myTheta) + \
+           log_b_m_x(these_cats, X, myTheta, pre_these_cats) - \
+           log_sum_wk_bkx(myTheta.omega, log_bmx_all_cats)[:, np.newaxis]
 
 
 # endregion
@@ -371,94 +369,154 @@ def logLik(log_Bs, myTheta):
 
 # endregion
 
-def compute_new_omega(log_pmxs):
+def compute_log_sum_pmx(log_pmxs):
     """
-    Computes:
-    w_m = Sum(t=1->T){ p(m|x_t;theta) / T}
-
     :param log_pmxs: (T, M) tensor
     (t,m)-th element is log(p(m|x_t;theta))
-    """
-    # For pmx's
-    # Axis 0: Samples
-    # Axis 1: Categories
-    # Want to sum along samples
-    log_sum_pmx = logsumexp(log_pmxs, axis=0) # Shape (M,)
-    sum_pmx = np.exp(log_sum_pmx)
 
-    # Grab T (samples axis)
-    T = log_pmxs.shape[0]
-
-    return sum_pmx / T
-
-
-def compute_new_mu(log_pmxs, X):
-    """
-    Computes:
-    mu_m = Sum(t=1->T){ p(m|x_t;theta) * x_t } /
-            Sum(t=1->T){ (p(m|x_t;theta) }
-
-    :param log_pmxs: (T, M) tensor
-    (t,m)-th element is log(p(m|x_t;theta))
+    Returns (M,) tensor where m-th element equals:
+    log(Sum(t=1->T){ p(m|x_t;theta) })
     """
     # For log_pmx's
     # Axis 0: Samples
     # Axis 1: Categories
+    # Want to sum along samples
+    return logsumexp(log_pmxs, axis=0)  # Shape (T, M) -> (M,)
 
 
-    # Denominator: Want to sum along samples
-    denominator = np.sum(log_pmxs, axis=0) # Shape (M,)
+def compute_new_omega(log_pmxs):
+    """
+    :param log_pmxs: (T, M) tensor
+    (t,m)-th element is log(p(m|x_t;theta))
 
-    # Grab T (samples axis)
-    T = log_pmxs.shape[0]
+    Returns (M,1) tensor where m-th element equals:
+    omega_m = Sum(t=1->T){ p(m|x_t;theta) / T}
+    """
+    # m-th element is Sum(t=1->T){ p(m|x_t;theta) }
+    log_sum_pmx = compute_log_sum_pmx(log_pmxs)  # Shape (M,)
 
-    return total / T
+    # Log T
+    log_T = np.log(log_pmxs.shape[0])
+
+    # (log of division) is (subtraction of log)
+    return np.exp(log_sum_pmx - log_T)[:, np.newaxis]  # Shape (M,1)
 
 
-def compute_new_sigma(log_pmxs, X, new_mu):
-    pass
+def compute_new_mu(log_pmxs, X_reshaped):
+    """
+    :param log_pmxs: (T, M) tensor
+    (t,m)-th element is log(p(m|x_t;theta))
+
+    :param X_reshaped: (T, 1, d) data tensor
+    (t, 1, d)-th element is (x_t[d])
+
+    Returns (M,d) tensor where (m,d)-th element is:
+    mu_m = Sum(t=1->T){ p(m|x_t;theta) * x_t[d] } /
+            Sum(t=1->T){ (p(m|x_t;theta) }
+    """
+    # (t, m, 1)-th element is p(m|x_t;theta)
+    pmx_reshape = np.exp(log_pmxs)[..., np.newaxis]  # Shape (T, M, 1)
+
+    # (t, m, d)-th element: p(m|x_t;theta) * x_t[d]
+    pmx_xt = pmx_reshape * X_reshaped  # Shape (T, M, 1) * (T, 1, d) -> (T, M, d)
+
+    # Axis 0: Sample
+    # Axis 1: Category (m)
+    # Axis 2: Dimension (d)
+    # Want to sum along samples (axis 0)
+    # (m, d)-th element: Sum(t=1->T){ p(m|x_t;theta) * x_t[d] }
+    sum_pmx_xt = pmx_xt.sum(axis=0)
+
+    # m-th element is log(Sum(t=1->T){ (p(m|x_t;theta) })
+    log_sum_pmx = compute_log_sum_pmx(log_pmxs)  # Shape (M,)
+    sum_pmx = np.exp(log_sum_pmx) # Shape (M, )
+
+    # Shape (M, d) / (M, 1) -> (M, d)
+    return sum_pmx_xt / sum_pmx[:, np.newaxis]
 
 
-def compute_results(theta, X):
+def compute_new_sigma(log_pmxs, X_reshaped, new_mu):
+    """
+    :param log_pmxs: (T, M) tensor
+    (t,m)-th element is log(p(m|x_t;theta))
+
+    :param X_reshaped: (T, 1, d) data tensor
+    (t, 1, d)-th element is (x_t[d])
+
+    :param new_mu: (M, d) tensor where (m,d)-th element is:
+    mu_m = Sum(t=1->T){ p(m|x_t;theta) * x_t[d] } /
+            Sum(t=1->T){ (p(m|x_t;theta) }
+
+    Returns (M, d) tensor where (m, d)-th element is:
+    (
+        Sum(t=1->T){ p(m|x_t;theta) * x_t^2[d] } /
+        Sum(t=1->T){ (p(m|x_t;theta) }
+    ) - (mu_m^2)[d]
+    """
+
+    # (t, m, 1)-th element is p(m|x_t;theta)
+    pmx_reshape = np.exp(log_pmxs)[..., np.newaxis]  # Shape (T, M, 1)
+
+    # (t, m, d)-th element: p(m|x_t;theta) * x_t^2[d]
+    pmx_xt2 = pmx_reshape * (X_reshaped ** 2)  # Shape (T, M, 1) * (T, 1, d) -> (T, M, d)
+
+    # Axis 0: Sample
+    # Axis 1: Category (m)
+    # Axis 2: Dimension (d)
+    # Want to sum along samples (axis 0)
+    # (m, d)-th element: Sum(t=1->T){ p(m|x_t;theta) * x_t[d]^2 }
+    sum_pmx_xt2 = pmx_xt2.sum(axis=0)
+
+    # m-th element is log(Sum(t=1->T){ (p(m|x_t;theta) })
+    log_sum_pmx = compute_log_sum_pmx(log_pmxs)  # Shape (M,)
+    sum_pmx = np.exp(log_sum_pmx)  # Shape (M, )
+
+    # The fraction of sums,
+    fraction = sum_pmx_xt2 / sum_pmx[:, np.newaxis] # Shape (M, d) / (M, 1) -> (M, d)
+
+    # Shape (M, d) - (M, d) -> (M, d)
+    return fraction - (new_mu ** 2)
+
+
+def compute_results(model, X_reshaped):
     """
     Computes the results needed to train the model
 
-    :param theta: the model
+    :param model: the model
 
-    :param X: the data matrix, shape (T, M)
+    :param X_reshaped: the data tensor, shape (T, 1, d)
 
     :return:
     """
-    M = theta.omega.shape[0]
+    M = model.omega.shape[0]
 
     # List of all categories
     categories = np.arange(M)  # Shape: (M,)
 
     # Pre-computation for m
-    m_pre_comp = m_term_of_log_bmx(categories, theta)  # Shape: (M,)
+    m_pre_comp = m_term_of_log_bmx(categories, model)  # Shape: (M,)
 
     # Shape (T, M): (t,m)-th element is log(b_m(x_t))
-    log_Bs = log_b_m_x(categories, X, theta, m_pre_comp)
+    log_Bs = log_b_m_x(categories, X_reshaped, model, m_pre_comp)
 
-    # Shape (T, M): (t,m)-th element is log(p(m|x_t;theta))
-    log_pmxs = log_p_m_x(categories, X, theta)
+    # Shape (T, M): (t,m)-th element is log(p(m|x_t;model))
+    log_pmxs = log_p_m_x(categories, X_reshaped, model)
 
-    # Shape: Scalar
-    likelihood = np.exp(logLik(
+    log_likelihood = logLik(
         log_Bs.transpose(),  # logLik is Expecting (M,T)
-        theta
-    ))
+        model
+    )
 
     # Shape: (M,)
     new_omega = compute_new_omega(log_pmxs)
 
     # Shape: (M,d)
-    new_mu = compute_new_mu(log_pmxs, X)
+    new_mu = compute_new_mu(log_pmxs, X_reshaped)
 
     # Shape: (M,d)
-    new_sigma = compute_new_sigma(log_pmxs, X, new_mu)
+    new_sigma = compute_new_sigma(log_pmxs, X_reshaped, new_mu)
 
-    return (likelihood, new_omega, new_mu, new_sigma)
+    return (log_likelihood, new_omega, new_mu, new_sigma)
 
 
 def train(speaker, X, M=8, epsilon=0.0, maxIter=20):
@@ -466,46 +524,98 @@ def train(speaker, X, M=8, epsilon=0.0, maxIter=20):
     Train a model for the given speaker.
     Returns the theta (omega, mu, sigma)
     '''
+
+    # Initialize theta
     myTheta = theta(speaker, M, X.shape[1])
+    myTheta.mu = np.random.rand(*myTheta.mu.shape)
+    myTheta.Sigma = np.ones_like(myTheta.Sigma)
 
-    categories = np.arange(M)  # Shape: (M,)
+    # Constraint:
+    # Omegas must add up to one
+    # Omegas must be between 0 and 1
+    myTheta.omega = np.abs(np.random.rand(*myTheta.omega.shape))
+    myTheta.omega /= myTheta.omega.sum()
 
-    prev_loss = -float('inf')
+    prev_log_lik = -float('inf')
     improvement = float('inf')
 
+    X_reshaped = reshape_x_to_X(X, myTheta)
+
+    # Repeat for specified number of iterations
     for i in range(maxIter):
-        m_pre_comp = m_term_of_log_bmx(categories, myTheta)  # Shape: (M,)
 
-        log_Bs = log_b_m_x(categories, X, myTheta, m_pre_comp)  # Shape: (T, M)
-        log_pmxs = log_p_m_x(categories, X, myTheta)  # Shape: (T, M)
+        # Abort if improvement did not exceed epsilon
+        if improvement < epsilon:
+            break
 
-    print('TODO')
+        # Compute new parameters
+        log_likelihood, new_omega, new_mu, new_sigma = \
+            compute_results(myTheta, X_reshaped)
+
+        # Update parameters
+        myTheta.omega = new_omega
+        myTheta.mu = new_mu
+        myTheta.Sigma = new_sigma
+
+        # Update improvement
+        improvement = log_likelihood - prev_log_lik
+        prev_log_lik = log_likelihood
+
     return myTheta
 
 
 def test(mfcc, correctID, models, k=5):
-    ''' Computes the likelihood of 'mfcc' in each model in 'models', where the correct model is 'correctID'
-        If k>0, print to stdout the actual speaker and the k best likelihoods in this format:
-               [ACTUAL_ID]
-               [SNAME1] [LOGLIK1]
-               [SNAME2] [LOGLIK2]
-               ...
-               [SNAMEK] [LOGLIKK] 
-
-        e.g.,
-               S-5A -9.21034037197
-        the format of the log likelihood (number of decimal places, or exponent) does not matter
     '''
-    bestModel = -1
-    print('TODO')
-    return 1 if (bestModel == correctID) else 0
+    Computes the likelihood of 'mfcc' in each model in 'models', where the correct model is 'correctID'
+    If k>0, print to stdout the actual speaker and the k best likelihoods in this format:
+           [ACTUAL_ID]
+           [SNAME1] [LOGLIK1]
+           [SNAME2] [LOGLIK2]
+           ...
+           [SNAMEK] [LOGLIKK]
+
+    e.g.,
+           S-5A -9.21034037197
+    the format of the log likelihood (number of decimal places, or exponent) does not matter
+    '''
+
+    def model_log_lik(mod):
+        mfcc_reshaped = reshape_x_to_X(mfcc, mod)
+
+        M = mod.omega.shape[0]
+
+        # List of all categories
+        categories = np.arange(M)  # Shape: (M,)
+
+        # Pre-computation for m
+        m_pre_comp = m_term_of_log_bmx(categories, mod)  # Shape: (M,)
+
+        log_Bs = log_b_m_x(categories, mfcc_reshaped, mod, m_pre_comp)
+
+        return logLik(
+            log_Bs.transpose(),  # This function expects transpose
+            myTheta=mod
+        )
+
+    # Models from best->worst
+    best_to_worst_models = list(sorted(
+        models, key=model_log_lik, reverse=True
+    ))
+
+    best_model = best_to_worst_models[0]
+    top_k_models = best_to_worst_models[:k]
+
+    print(models[correctID].name)
+    for mod in top_k_models:
+        print(f"{mod.name} {model_log_lik(mod)}")
+
+    return 1 if (best_model.name == correctID) else 0
 
 
 if __name__ == "__main__":
 
     trainThetas = []
     testMFCCs = []
-    print('TODO: you will need to modify this main block for Sec 2.3')
     d = 13
     k = 5  # number of top speakers to display, <= 0 if none
     M = 8
@@ -530,7 +640,7 @@ if __name__ == "__main__":
             trainThetas.append(train(speaker, X, M, epsilon, maxIter))
 
     # evaluate 
-    numCorrect = 0;
+    numCorrect = 0
     for i in range(0, len(testMFCCs)):
         numCorrect += test(testMFCCs[i], i, trainThetas, k)
     accuracy = 1.0 * numCorrect / len(testMFCCs)
