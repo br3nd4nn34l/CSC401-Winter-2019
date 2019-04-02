@@ -11,11 +11,6 @@ dataDir = '/u/cs401/A3/data/'
 # TODO CHANGE FOR RUNNING ON CDF
 dataDir = '../data/'
 
-# region NaN Management TODO REMOVE THIS ON BUGFIXES
-
-
-# endregion
-
 class theta:
     def __init__(self, name, M=8, d=13):
         self.name = name
@@ -86,7 +81,7 @@ def reshape_m_to_components(m, model):
 def sum_xn2_over_smn(X, components, model):
     """
     :param X: array of shape (T, 1, d)
-    :param components: array of category indices
+    :param components: array of component indices
     :param model: the model
 
     Let k = length of components
@@ -94,8 +89,6 @@ def sum_xn2_over_smn(X, components, model):
     Returns (T,k) tensor where (t, m)-th element is equal to:
     Sum(n=1->d){ x[n]^2 / sig_m[n] }
     """
-
-    # TODO WHY IS THIS SO HUGE?
 
     # (t, 1, n)-th element is x_t[n]^2
     numerators = X ** 2  # Shape (T, 1, d)
@@ -107,7 +100,7 @@ def sum_xn2_over_smn(X, components, model):
     terms = numerators / denominators  # Shape: (T, 1, d) / (_, k, d) -> (T, k, d)
 
     # Axis 0: sample
-    # Axis 1: category
+    # Axis 1: component
     # Axis 2: dimension
     # Want to sum along dimension
     return np.sum(terms, axis=2)  # Shape: (T, k)
@@ -116,7 +109,7 @@ def sum_xn2_over_smn(X, components, model):
 def sum_xn_umn_over_smn(X, components, model):
     """
     :param X: array of shape (T, 1, d)
-    :param components: array of category indices
+    :param components: array of component indices
     :param model: the model
 
     Let k = length of components
@@ -139,7 +132,7 @@ def sum_xn_umn_over_smn(X, components, model):
     terms = numerators / denominators  # Shape: (T, k, d) * (_, k, d) -> (T, k, d)
 
     # Axis 0: sample
-    # Axis 1: category
+    # Axis 1: component
     # Axis 2: dimension
     # Want to sum along dimension
     return np.sum(terms, axis=2)  # Shape (T, k)
@@ -147,7 +140,7 @@ def sum_xn_umn_over_smn(X, components, model):
 
 def sum_umn2_over_smn(components, model):
     """
-    :param components: array of category indices
+    :param components: array of component indices
     :param model: the model
 
     Let k = length of components
