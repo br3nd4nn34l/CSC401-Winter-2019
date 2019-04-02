@@ -55,7 +55,7 @@ def reshape_x_to_X(x, model):
     return x.reshape((T, 1, d))
 
 
-def reshape_m_to_categories(m, model):
+def reshape_m_to_components(m, model):
     """
     If m is a number
         Reshape to array of size (1,)
@@ -71,7 +71,7 @@ def reshape_m_to_categories(m, model):
     # Must be a vector
     assert len(squeezed.shape) == 1
 
-    # Every element must be less than number of categories
+    # Every element must be less than number of components
     M = model.omega.shape[0]
     assert np.all(squeezed < M)
 
@@ -83,14 +83,14 @@ def reshape_m_to_categories(m, model):
 # region Log BMX Functions
 
 
-def sum_xn2_over_smn(X, categories, model):
+def sum_xn2_over_smn(X, components, model):
     """
     :param X: array of shape (T, 1, d)
-    :param categories: array of category indices
+    :param components: array of category indices
     :param model: the model
 
-    Let k = length of categories
-    Let k = length of categories
+    Let k = length of components
+    Let k = length of components
     Returns (T,k) tensor where (t, m)-th element is equal to:
     Sum(n=1->d){ x[n]^2 / sig_m[n] }
     """
@@ -101,7 +101,7 @@ def sum_xn2_over_smn(X, categories, model):
     numerators = X ** 2  # Shape (T, 1, d)
 
     # (m, n)-th element is sig_m[n]
-    denominators = model.Sigma[categories]  # Shape (k, d)
+    denominators = model.Sigma[components]  # Shape (k, d)
 
     # (t, m, n)-th element is x_t[n]^2 / sig_m[n]
     terms = numerators / denominators  # Shape: (T, 1, d) / (_, k, d) -> (T, k, d)
@@ -113,13 +113,13 @@ def sum_xn2_over_smn(X, categories, model):
     return np.sum(terms, axis=2)  # Shape: (T, k)
 
 
-def sum_xn_umn_over_smn(X, categories, model):
+def sum_xn_umn_over_smn(X, components, model):
     """
     :param X: array of shape (T, 1, d)
-    :param categories: array of category indices
+    :param components: array of category indices
     :param model: the model
 
-    Let k = length of categories
+    Let k = length of components
     Returns (T,k) tensor where (t, m)-th element is equal to:
     Sum(n=1->d){ x_t[n] * mu_m[n] / sig_m[n] }
     """
@@ -127,13 +127,13 @@ def sum_xn_umn_over_smn(X, categories, model):
     xtn_arr = X  # Shape (T, 1, d)
 
     # (m, n)-th element is mu_m[n]
-    mu_m_arr = model.mu[categories]  # Shape (k, d)
+    mu_m_arr = model.mu[components]  # Shape (k, d)
 
     # (t, m, n)-th element is x_t[n] * mu_m[n]
     numerators = xtn_arr * mu_m_arr  # Shape: (T, 1, d) * (_, k, d) -> (T, k, d)
 
     # (m, n)-th element is sig_m[n]
-    denominators = model.Sigma[categories]  # Shape (k, d)
+    denominators = model.Sigma[components]  # Shape (k, d)
 
     # (t, m, n)-th element is (x_t[n] * mu_m[n]) / sig_m[n]
     terms = numerators / denominators  # Shape: (T, k, d) * (_, k, d) -> (T, k, d)
@@ -145,62 +145,62 @@ def sum_xn_umn_over_smn(X, categories, model):
     return np.sum(terms, axis=2)  # Shape (T, k)
 
 
-def sum_umn2_over_smn(categories, model):
+def sum_umn2_over_smn(components, model):
     """
-    :param categories: array of category indices
+    :param components: array of category indices
     :param model: the model
 
-    Let k = length of categories
-    Returns k-vector where each element is aligned to categories.
+    Let k = length of components
+    Returns k-vector where each element is aligned to components.
 
     m-th element is equal to:
     Sum(n=1->d){ mu_m[n]^2 / sig_m[n] }
     """
     # (m, n)-th term is mu_m[n]^2
-    numerators = model.mu[categories] ** 2  # Shape: (k, d)
+    numerators = model.mu[components] ** 2  # Shape: (k, d)
 
     # (m, n)-th term is sig_m[n]
-    denominators = model.Sigma[categories]  # Shape: (k, d)
+    denominators = model.Sigma[components]  # Shape: (k, d)
 
     # (m, n)-th term is mu_m[n]^2 / sig_m[n]
     terms = numerators / denominators  # Shape: (k, d)
 
-    # Axis 0: category
+    # Axis 0: component
     # Axis 1: dimension
     # Want to sum along dimension
     return np.sum(terms, axis=1)  # Shape (k,)
 
 
-def sum_log_smn(categories, model):
+def sum_log_smn(components, model):
     """
-    :param categories: array of category indices
+    :param components: array of component indices
     :param model: the model
 
-    Let k = length of categories
-    Returns k-vector where each element is aligned to categories.
+    Let k = length of components
+    Returns k-vector where each element is aligned to components.
 
     m-th element is equal to:
     Sum(n=1->d){ log(sig_m[n]) }
     """
     # (m, n)-th term is sig_m[n]
-    sig_m = model.Sigma[categories]  # Shape: (k, d)
+    sig_m = model.Sigma[components]  # Shape: (k, d)
 
     # (m, n)-th term is log(sig_m[n])
     log_sig_m = np.log(sig_m)  # Shape: (k, d)
 
-    # Axis 0: category
+    # Axis 0: component
     # Axis 1: dimension
     # Want to sum along dimension
     return np.sum(log_sig_m, axis=1)  # Shape: (k,)
 
 
-def m_term_of_log_bmx(categories, model):
+def m_term_of_log_bmx(components, model):
     """
-    :param categories: array of category indices
+    :param components: array of component indices
     :param model: the model
 
-    Let k = length of categories
-    Returns k-vector where each element is aligned to categories.
+    Let k = length of components
+    Returns k-vector where each element is aligned to components.
 
     m-th element is equal to:
     Sum(n=1->d){ mu_m[n]^2 / sig_m[n] } +
@@ -212,27 +212,27 @@ def m_term_of_log_bmx(categories, model):
     d_log_2pi = d * np.log(2 * np.pi)
 
     # Shape: (k,)
-    return sum_umn2_over_smn(categories, model) + \
-           sum_log_smn(categories, model) + \
+    return sum_umn2_over_smn(components, model) + \
+           sum_log_smn(components, model) + \
            d_log_2pi
 
 
-def x_term_of_log_bmx(X, categories, model):
+def x_term_of_log_bmx(X, components, model):
     """
     :param X: array of shape (T, 1, d)
-    :param categories: array of category indices
+    :param components: array of component indices
     :param model: the model
 
-    Let k = length of categories
-    Returns k-vector where each element is aligned to categories.
+    Let k = length of components
+    Returns k-vector where each element is aligned to components.
 
     m-th element is equal to:
     Sum(n=1->d){ x[n]^2 / sig_m[n] } -
     2 * Sum(n=1->d){ x[n] * mu_m[n] / sig_m[n] }
     """
     # Shape (T, k)
-    return sum_xn2_over_smn(X, categories, model) - \
-           (2 * sum_xn_umn_over_smn(X, categories, model))
+    return sum_xn2_over_smn(X, components, model) - \
+           (2 * sum_xn_umn_over_smn(X, components, model))
 
 
 def log_b_m_x(m, x, myTheta, preComputedForM=[]):
@@ -247,16 +247,16 @@ def log_b_m_x(m, x, myTheta, preComputedForM=[]):
 
     # Standardize input tensors
     X = reshape_x_to_X(x, myTheta)
-    categories = reshape_m_to_categories(m, myTheta)
+    components = reshape_m_to_components(m, myTheta)
 
     # Term that depends on m
     if preComputedForM != []:
         m_term = preComputedForM
     else:
-        m_term = m_term_of_log_bmx(categories, myTheta)  # Shape: (k,)
+        m_term = m_term_of_log_bmx(components, myTheta)  # Shape: (k,)
 
     # Term that depends on x
-    x_term = x_term_of_log_bmx(X, categories, myTheta)  # Shape: (T, k)
+    x_term = x_term_of_log_bmx(X, components, myTheta)  # Shape: (T, k)
 
     # Tensor to return
     return -0.5 * (x_term + m_term)  # Shape: (T, k)
@@ -287,22 +287,22 @@ def log_sum_wk_bkx(omega_all_cats, log_b_xt_all_cats):
     terms = log_wk + log_b_xt_all_cats  # Shape: (M,) + (T, M) -> (T, M)
 
     # Axis 0: samples
-    # Axis 1: categories
-    # Want to sum along categories
+    # Axis 1: components
+    # Want to sum along components
     return logsumexp(terms, axis=1)
 
 
-def log_wm(categories, model):
+def log_wm(components, model):
     """
-    :param categories: given categories
+    :param components: given components
     :param model: the model containing omega
 
-    For k-vector of categories,
+    For k-vector of components,
     returns k-vector where m-th element is:
 
     log(omega_m)
     """
-    omega_m = model.omega[categories].flatten()
+    omega_m = model.omega[components].flatten()
     return np.log(omega_m)  # Shape: (k,)
 
 
@@ -312,21 +312,21 @@ def log_p_m_x(m, x, myTheta):
     m^{th} component given d-dimensional vector x, and model myTheta
     See equation 2 of handout
     '''
-    # All category numbers
+    # All component numbers
     M = myTheta.omega.shape[0]
-    all_cats = reshape_m_to_categories(np.arange(M), myTheta)  # Shape (M,)
+    all_cats = reshape_m_to_components(np.arange(M), myTheta)  # Shape (M,)
 
-    # Given category numbers
-    these_cats = reshape_m_to_categories(m, myTheta)  # Shape (k,)
+    # Given component numbers
+    these_cats = reshape_m_to_components(m, myTheta)  # Shape (k,)
 
-    # Precomputed m-terms for categories
+    # Precomputed m-terms for components
     pre_all_cats = m_term_of_log_bmx(all_cats, myTheta)  # Shape (M,)
     pre_these_cats = pre_all_cats[these_cats]  # Shape (k,)
 
     # Data array
     X = reshape_x_to_X(x, myTheta)  # Shape (T, 1, d)
 
-    # log_bmx for categories
+    # log_bmx for components
     log_bmx_all_cats = log_b_m_x(all_cats, X, myTheta, pre_all_cats)  # Shape (T, M)
 
     # Shape: (k,) + (T, k) - (T, 1) -> (T, k)
@@ -379,7 +379,7 @@ def compute_log_sum_pmx(log_pmxs):
     """
     # For log_pmx's
     # Axis 0: Samples
-    # Axis 1: Categories
+    # Axis 1: components
     # Want to sum along samples
     return logsumexp(log_pmxs, axis=0)  # Shape (T, M) -> (M,)
 
@@ -421,7 +421,7 @@ def compute_new_mu(log_pmxs, X_reshaped):
     pmx_xt = pmx_reshape * X_reshaped  # Shape (T, M, 1) * (T, 1, d) -> (T, M, d)
 
     # Axis 0: Sample
-    # Axis 1: Category (m)
+    # Axis 1: component (m)
     # Axis 2: Dimension (d)
     # Want to sum along samples (axis 0)
     # (m, d)-th element: Sum(t=1->T){ p(m|x_t;theta) * x_t[d] }
@@ -461,7 +461,7 @@ def compute_new_sigma(log_pmxs, X_reshaped, new_mu):
     pmx_xt2 = pmx_reshape * (X_reshaped ** 2)  # Shape (T, M, 1) * (T, 1, d) -> (T, M, d)
 
     # Axis 0: Sample
-    # Axis 1: Category (m)
+    # Axis 1: component (m)
     # Axis 2: Dimension (d)
     # Want to sum along samples (axis 0)
     # (m, d)-th element: Sum(t=1->T){ p(m|x_t;theta) * x_t[d]^2 }
@@ -490,17 +490,17 @@ def compute_results(model, X_reshaped):
     """
     M = model.omega.shape[0]
 
-    # List of all categories
-    categories = np.arange(M)  # Shape: (M,)
+    # List of all components
+    components = np.arange(M)  # Shape: (M,)
 
     # Pre-computation for m
-    m_pre_comp = m_term_of_log_bmx(categories, model)  # Shape: (M,)
+    m_pre_comp = m_term_of_log_bmx(components, model)  # Shape: (M,)
 
     # Shape (T, M): (t,m)-th element is log(b_m(x_t))
-    log_Bs = log_b_m_x(categories, X_reshaped, model, m_pre_comp)
+    log_Bs = log_b_m_x(components, X_reshaped, model, m_pre_comp)
 
     # Shape (T, M): (t,m)-th element is log(p(m|x_t;model))
-    log_pmxs = log_p_m_x(categories, X_reshaped, model)
+    log_pmxs = log_p_m_x(components, X_reshaped, model)
 
     log_likelihood = logLik(
         log_Bs.transpose(),  # logLik is Expecting (M,T)
@@ -584,13 +584,13 @@ def test(mfcc, correctID, models, k=5):
 
         M = mod.omega.shape[0]
 
-        # List of all categories
-        categories = np.arange(M)  # Shape: (M,)
+        # List of all components
+        components = np.arange(M)  # Shape: (M,)
 
         # Pre-computation for m
-        m_pre_comp = m_term_of_log_bmx(categories, mod)  # Shape: (M,)
+        m_pre_comp = m_term_of_log_bmx(components, mod)  # Shape: (M,)
 
-        log_Bs = log_b_m_x(categories, mfcc_reshaped, mod, m_pre_comp)
+        log_Bs = log_b_m_x(components, mfcc_reshaped, mod, m_pre_comp)
 
         return logLik(
             log_Bs.transpose(),  # This function expects transpose
@@ -605,11 +605,12 @@ def test(mfcc, correctID, models, k=5):
     best_model = best_to_worst_models[0]
     top_k_models = best_to_worst_models[:k]
 
-    print(models[correctID].name)
+    correct_model = models[correctID]
+    print(correct_model.name)
     for mod in top_k_models:
         print(f"{mod.name} {model_log_lik(mod)}")
 
-    return 1 if (best_model.name == correctID) else 0
+    return 1 if (best_model.name == correct_model.name) else 0
 
 
 if __name__ == "__main__":
