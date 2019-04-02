@@ -4,12 +4,15 @@ import os, fnmatch
 import random
 from scipy.special import logsumexp
 
+# Seed for consistency
+random.seed(401)
 np.random.seed(401)
 
 dataDir = '/u/cs401/A3/data/'
 
 # TODO CHANGE FOR RUNNING ON CDF
 dataDir = '../data/'
+
 
 class theta:
     def __init__(self, name, M=8, d=13):
@@ -362,6 +365,8 @@ def logLik(log_Bs, myTheta):
 
 # endregion
 
+# region Training Functions
+
 def compute_log_sum_pmx(log_pmxs):
     """
     :param log_pmxs: (T, M) tensor
@@ -422,7 +427,7 @@ def compute_new_mu(log_pmxs, X_reshaped):
 
     # m-th element is log(Sum(t=1->T){ (p(m|x_t;theta) })
     log_sum_pmx = compute_log_sum_pmx(log_pmxs)  # Shape (M,)
-    sum_pmx = np.exp(log_sum_pmx) # Shape (M, )
+    sum_pmx = np.exp(log_sum_pmx)  # Shape (M, )
 
     # Shape (M, d) / (M, 1) -> (M, d)
     return sum_pmx_xt / sum_pmx[:, np.newaxis]
@@ -465,7 +470,7 @@ def compute_new_sigma(log_pmxs, X_reshaped, new_mu):
     sum_pmx = np.exp(log_sum_pmx)  # Shape (M, )
 
     # The fraction of sums,
-    fraction = sum_pmx_xt2 / sum_pmx[:, np.newaxis] # Shape (M, d) / (M, 1) -> (M, d)
+    fraction = sum_pmx_xt2 / sum_pmx[:, np.newaxis]  # Shape (M, d) / (M, 1) -> (M, d)
 
     # Shape (M, d) - (M, d) -> (M, d)
     return fraction - (new_mu ** 2)
@@ -528,11 +533,11 @@ def initialize_theta(speaker, M, X):
     ret = theta(speaker, M, d)
 
     # Initialize mu to random vectors from data
-    rand_inds = np.random.randint(low=0, high=T, size=M) # Shape (M,)
-    ret.mu = X[rand_inds, :] # Shape (T, d)[(M,)] -> (M, d)
+    rand_inds = np.random.randint(low=0, high=T, size=M)  # Shape (M,)
+    ret.mu = X[rand_inds, :]  # Shape (T, d)[(M,)] -> (M, d)
 
     # Initialize sigma randomly
-    ret.Sigma = np.random.rand(*ret.Sigma.shape) # Between 0 and 1
+    ret.Sigma = np.random.rand(*ret.Sigma.shape)  # Between 0 and 1
 
     # Initialize omega randomly
     # Omegas must add up to one
@@ -541,6 +546,7 @@ def initialize_theta(speaker, M, X):
     ret.omega /= ret.omega.sum()
 
     return ret
+
 
 def train(speaker, X, M=8, epsilon=0.0, maxIter=20):
     '''
@@ -555,7 +561,7 @@ def train(speaker, X, M=8, epsilon=0.0, maxIter=20):
     X_reshaped = reshape_x_to_X(X, myTheta)
 
     # Repeat for specified number of iterations
-    for i in range(maxIter):
+    for i in range(maxIter + 1):  # Equivalent to a leq while-loop
 
         # Abort if improvement did not exceed epsilon
         if improvement < epsilon:
@@ -576,6 +582,8 @@ def train(speaker, X, M=8, epsilon=0.0, maxIter=20):
 
     return myTheta
 
+
+# endregion
 
 def test(mfcc, correctID, models, k=5):
     '''
