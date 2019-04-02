@@ -259,11 +259,11 @@ def log_b_m_x(m, x, myTheta, preComputedForM=[]):
 
 # region Log PMX Functions
 
-def log_sum_wk_bkx(omega_all_cats, log_b_xt_all_cats):
+def log_sum_wk_bkx(omega_all_comps, log_b_xt_all_comps):
     """
-    :param omega_all_cats: array of shape (M,)
+    :param omega_all_comps: array of shape (M,)
 
-    :param log_b_xt_all_cats: array of shape (T, M)
+    :param log_b_xt_all_comps: array of shape (T, M)
     (log bmx for each x_t, for all m from 1 to M)
 
     Returns array of size (T,)
@@ -271,13 +271,13 @@ def log_sum_wk_bkx(omega_all_cats, log_b_xt_all_cats):
     log[Sum(k=1->M){ omega_k * b_k(xt) )}]
     """
 
-    log_wk = np.log(omega_all_cats).flatten()  # Shape (M,)
+    log_wk = np.log(omega_all_comps).flatten()  # Shape (M,)
 
     # logsum(w_k * b_k)
     # = logsum(exp(log(w_k * b_k)))
     # = logsum(exp(log(w_k) + log(b_k)))
     # = logsumexp(log(w_k) + log(b_k))
-    terms = log_wk + log_b_xt_all_cats  # Shape: (M,) + (T, M) -> (T, M)
+    terms = log_wk + log_b_xt_all_comps  # Shape: (M,) + (T, M) -> (T, M)
 
     # Axis 0: samples
     # Axis 1: components
@@ -307,25 +307,25 @@ def log_p_m_x(m, x, myTheta):
     '''
     # All component numbers
     M = myTheta.omega.shape[0]
-    all_cats = reshape_m_to_components(np.arange(M), myTheta)  # Shape (M,)
+    all_comps = reshape_m_to_components(np.arange(M), myTheta)  # Shape (M,)
 
     # Given component numbers
-    these_cats = reshape_m_to_components(m, myTheta)  # Shape (k,)
+    these_comps = reshape_m_to_components(m, myTheta)  # Shape (k,)
 
     # Precomputed m-terms for components
-    pre_all_cats = m_term_of_log_bmx(all_cats, myTheta)  # Shape (M,)
-    pre_these_cats = pre_all_cats[these_cats]  # Shape (k,)
+    pre_all_comps = m_term_of_log_bmx(all_comps, myTheta)  # Shape (M,)
+    pre_these_comps = pre_all_comps[these_comps]  # Shape (k,)
 
     # Data array
     X = reshape_x_to_X(x, myTheta)  # Shape (T, 1, d)
 
     # log_bmx for components
-    log_bmx_all_cats = log_b_m_x(all_cats, X, myTheta, pre_all_cats)  # Shape (T, M)
+    log_bmx_all_comps = log_b_m_x(all_comps, X, myTheta, pre_all_comps)  # Shape (T, M)
 
     # Shape: (k,) + (T, k) - (T, 1) -> (T, k)
-    return log_wm(these_cats, myTheta) + \
-           log_b_m_x(these_cats, X, myTheta, pre_these_cats) - \
-           log_sum_wk_bkx(myTheta.omega, log_bmx_all_cats)[:, np.newaxis]
+    return log_wm(these_comps, myTheta) + \
+           log_b_m_x(these_comps, X, myTheta, pre_these_comps) - \
+           log_sum_wk_bkx(myTheta.omega, log_bmx_all_comps)[:, np.newaxis]
 
 
 # endregion
@@ -347,17 +347,17 @@ def logLik(log_Bs, myTheta):
     '''
 
     # Given shape (M, T) -> Want (T, M)
-    log_b_xt_all_cats = log_Bs.transpose()
+    log_b_xt_all_comps = log_Bs.transpose()
 
     # t-th element is log(p(x_t ; theta_s)
     # Shape: (T,)
-    log_p_xt_theta_s = log_sum_wk_bkx(
-        omega_all_cats=myTheta.omega,  # Shape: (M,)
-        log_b_xt_all_cats=log_b_xt_all_cats  # Shape: (T, M)
+    log_p_xt_theta = log_sum_wk_bkx(
+        omega_all_comps=myTheta.omega,  # Shape: (M,)
+        log_b_xt_all_comps=log_b_xt_all_comps  # Shape: (T, M)
     )
 
     # Sum across all t=1->T
-    return np.sum(log_p_xt_theta_s)
+    return np.sum(log_p_xt_theta)
 
 
 # endregion
@@ -512,22 +512,42 @@ def compute_results(model, X_reshaped):
     return (log_likelihood, new_omega, new_mu, new_sigma)
 
 
+def initialize_theta(speaker, M, X):
+    """
+
+    Initialize theta as specified in slide 28 of A3 tutorial 1
+
+    :param speaker: name of the speaker
+    :param M: number of components for the model
+    :param X: the (T, d) data matrix
+
+    Returns the initialized theta.
+
+    """
+    T, d = X.shape
+    ret = theta(speaker, M, d)
+
+    # Initialize mu to random vectors from data
+    rand_inds = np.random.randint(low=0, high=T, size=M) # Shape (M,)
+    ret.mu = X[rand_inds, :] # Shape (T, d)[(M,)] -> (M, d)
+
+    # Initialize sigma randomly
+    ret.Sigma = np.random.rand(*ret.Sigma.shape) # Between 0 and 1
+
+    # Initialize omega randomly
+    # Omegas must add up to one
+    # Omegas must be between 0 and 1
+    ret.omega = np.abs(np.random.rand(*ret.omega.shape))
+    ret.omega /= ret.omega.sum()
+
+    return ret
+
 def train(speaker, X, M=8, epsilon=0.0, maxIter=20):
     '''
     Train a model for the given speaker.
     Returns the theta (omega, mu, sigma)
     '''
-
-    # Initialize theta
-    myTheta = theta(speaker, M, X.shape[1])
-    myTheta.mu = np.random.rand(*myTheta.mu.shape)
-    myTheta.Sigma = np.ones_like(myTheta.Sigma)
-
-    # Constraint:
-    # Omegas must add up to one
-    # Omegas must be between 0 and 1
-    myTheta.omega = np.abs(np.random.rand(*myTheta.omega.shape))
-    myTheta.omega /= myTheta.omega.sum()
+    myTheta = initialize_theta(speaker, M, X)
 
     prev_log_lik = -float('inf')
     improvement = float('inf')
@@ -638,3 +658,4 @@ if __name__ == "__main__":
     for i in range(0, len(testMFCCs)):
         numCorrect += test(testMFCCs[i], i, trainThetas, k)
     accuracy = 1.0 * numCorrect / len(testMFCCs)
+    print(f"Final Accuracy: {accuracy}")
