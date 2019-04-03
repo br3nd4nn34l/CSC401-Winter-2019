@@ -4,10 +4,6 @@ import os, fnmatch
 import random
 from scipy.special import logsumexp
 
-# Seed for consistency
-random.seed(401)
-np.random.seed(401)
-
 dataDir = '/u/cs401/A3/data/'
 
 # TODO CHANGE FOR RUNNING ON CDF
@@ -132,7 +128,7 @@ def sum_xn_umn_over_smn(X, components, model):
     denominators = model.Sigma[components]  # Shape (k, d)
 
     # (t, m, n)-th element is (x_t[n] * mu_m[n]) / sig_m[n]
-    terms = numerators / denominators  # Shape: (T, k, d) * (_, k, d) -> (T, k, d)
+    terms = numerators / denominators  # Shape: (T, k, d) / (_, k, d) -> (T, k, d)
 
     # Axis 0: sample
     # Axis 1: component
@@ -585,6 +581,7 @@ def train(speaker, X, M=8, epsilon=0.0, maxIter=20):
 
 # endregion
 
+
 def test(mfcc, correctID, models, k=5):
     '''
     Computes the likelihood of 'mfcc' in each model in 'models', where the correct model is 'correctID'
@@ -627,43 +624,106 @@ def test(mfcc, correctID, models, k=5):
     top_k_models = best_to_worst_models[:k]
 
     correct_model = models[correctID]
-    print(correct_model.name)
-    for mod in top_k_models:
-        print(f"{mod.name} {model_log_lik(mod)}")
+
+    # Only print to stdout if k > 0
+    if k > 0:
+        print(correct_model.name)
+        for mod in top_k_models:
+            print(f"{mod.name} {model_log_lik(mod)}")
 
     return 1 if (best_model.name == correct_model.name) else 0
 
 
-if __name__ == "__main__":
+def main(M, k, epsilon, max_iter, data_dir, num_speakers=32,
+         silent_train=False, allow_unseen_test=True, seed=401):
+    """
+
+    Runs the train-test cycle. Used for experiments.
+
+    :param M: number of GMM components in models
+    :param k: number of top speakers to display
+    :param epsilon: improvement threshold for training
+    :param max_iter: maximum number of training iterations
+    :param data_dir: path to data directory
+    :param num_speakers: number of speakers to consider
+
+    :param silent_train: whether or not to train silently
+    (not silent: outputs speaker names)
+
+    :param allow_unseen_test: whether or not to include
+    test data from unseen / untrained speaker
+    """
+    # Seed for consistency
+    random.seed(seed)
+    np.random.seed(seed)
 
     trainThetas = []
     testMFCCs = []
+
+    # Dimensionality is fixed at 13
     d = 13
-    k = 5  # number of top speakers to display, <= 0 if none
-    M = 8
-    epsilon = 0.0
-    maxIter = 20
+
+    # List of speaker names (directory names in data directory)
+    speaker_names = [
+        speaker_name
+        for speaker_name in os.listdir(data_dir)
+        if os.path.isdir(os.path.join(data_dir, speaker_name))
+    ]
+
     # train a model for each speaker, and reserve data for testing
-    for subdir, dirs, files in os.walk(dataDir):
-        for speaker in dirs:
+    for (speaker_ind, speaker) in enumerate(speaker_names):
+
+        if not silent_train:
             print(speaker)
 
-            files = fnmatch.filter(os.listdir(os.path.join(dataDir, speaker)), '*npy')
-            random.shuffle(files)
+        # Get the train and test names
+        file_names = fnmatch.filter(os.listdir(os.path.join(data_dir, speaker)), '*npy')
+        random.shuffle(file_names)
+        train_names, test_name = file_names[:-1], file_names[-1]
 
-            testMFCC = np.load(os.path.join(dataDir, speaker, files.pop()))
-            testMFCCs.append(testMFCC)
-
+        # Add trained model
+        if speaker_ind < num_speakers:
             X = np.empty((0, d))
-            for file in files:
-                myMFCC = np.load(os.path.join(dataDir, speaker, file))
+            for name in train_names:
+                myMFCC = np.load(os.path.join(data_dir, speaker, name))
                 X = np.append(X, myMFCC, axis=0)
+            trainThetas.append(train(speaker, X, M, epsilon, max_iter))
 
-            trainThetas.append(train(speaker, X, M, epsilon, maxIter))
+        # Next iteration will be an unseen speaker
+        if (speaker_ind >= num_speakers):
 
-    # evaluate 
+            # Abort if specified
+            if not allow_unseen_test:
+                break
+
+            # Attach untrained model
+            else:
+                trainThetas.append(theta(speaker, M, d))
+
+        # Load and add test data
+        testMFCC = np.load(os.path.join(data_dir, speaker, test_name))
+        testMFCCs.append(testMFCC)
+
+    # evaluate
     numCorrect = 0
     for i in range(0, len(testMFCCs)):
         numCorrect += test(testMFCCs[i], i, trainThetas, k)
     accuracy = 1.0 * numCorrect / len(testMFCCs)
-    print(f"Final Accuracy: {accuracy}")
+
+    print(f"M: {M}, maxIter: {max_iter}, S: {num_speakers}, Accuracy: {accuracy}")
+
+
+if __name__ == "__main__":
+    # TODO RESTORE OLD CODE
+
+    # Note: moved away main block for modular code
+    main(
+        M=8,
+        k=5,  # number of top speakers to display, <= 0 if none
+        epsilon=0,
+        max_iter=20,
+        data_dir=dataDir,
+        num_speakers=32,
+        silent_train=False,
+        allow_unseen_test=True
+    )

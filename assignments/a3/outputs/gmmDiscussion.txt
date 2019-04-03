@@ -1,0 +1,245 @@
+Effect of Number of GMM Components (M) on Performance (Fix maxIter = 20, S=32) =======================
+
+maxIter was fixed at 20 to minimize the chance of the model
+not having enough train time to best approximate the latent
+distribution with the given number of components.
+
+(Seed 401)
+M: 8, maxIter: 20, S: 32, Accuracy: 1.0
+M: 6, maxIter: 20, S: 32, Accuracy: 0.96875
+M: 4, maxIter: 20, S: 32, Accuracy: 0.96875
+M: 2, maxIter: 20, S: 32, Accuracy: 0.9375
+M: 1, maxIter: 20, S: 32, Accuracy: 0.90625
+
+(Seed 0)
+M: 8, maxIter: 20, S: 32, Accuracy: 1.0
+M: 6, maxIter: 20, S: 32, Accuracy: 1.0
+M: 4, maxIter: 20, S: 32, Accuracy: 1.0
+M: 2, maxIter: 20, S: 32, Accuracy: 1.0
+M: 1, maxIter: 20, S: 32, Accuracy: 1.0
+
+DISCUSSION:
+
+The results above indicate that as M (number of Gaussian components)
+decreases, the accuracy of the classifier also decreases.
+This makes sense because a GMM with more components
+should be able to fit a multi-modal distribution more accurately.
+
+It should be noted that decreasing M only had a minimal effect on accuracy.
+
+For the experiment with the RNG seed set to 401,
+accuracy was monotonically decreasing,
+and fell by 9.375% (100%->90.625%) between M=8->1.
+Even at the minimal number of components (M=1),
+the classifier had a 90.6% accuracy.
+
+For the experiment with the RNG seed set to 0,
+accuracy remained constant at 100% across all M=8->1.
+Perhaps the GMMs instantiated using this seed were
+closer or equal to the latent distribution, and
+thus needed less fine-tuning to reach perfection.
+It should be noted that mu was instantiated
+using a subset of the train vectors, and
+the choice at seed 0 could be a very good
+approximation of the latent distribution's cluster centers.
+
+These results suggest that each speaker's latent distribution
+of utterances can be approximated quite well with
+only a uni-modal distribution, and that each of these
+uni-modal distributions are quite distinct to each other
+(they are different enough to produce substantially different
+log-likelihoods when run against data drawn from another speaker).
+
+Effect of Training Iterations (maxIter) on Performance (Fix M = 8, S:32) ==============================
+
+(Seed 401)
+
+M: 8, maxIter: 0, S: 32, Accuracy: 0.90625
+M: 8, maxIter: 5, S: 32, Accuracy: 1.0
+M: 8, maxIter: 10, S: 32, Accuracy: 1.0
+M: 8, maxIter: 15, S: 32, Accuracy: 1.0
+M: 8, maxIter: 20, S: 32, Accuracy: 1.0
+
+(Seed 0)
+M: 8, maxIter: 0, S: 32, Accuracy: 0.96875
+M: 8, maxIter: 5, S: 32, Accuracy: 1.0
+M: 8, maxIter: 10, S: 32, Accuracy: 1.0
+M: 8, maxIter: 15, S: 32, Accuracy: 1.0
+M: 8, maxIter: 20, S: 32, Accuracy: 1.0
+
+DISCUSSION:
+
+The results above indicate that the accuracy of the
+classifier is proportional to the number of training iterations.
+
+It should be noted that maxIter = 0 still runs one training iteration, as the
+pseudo-code specifies that training loop as
+while(i <= maxIter...), and starts off with i=0.
+
+For both experiments the classifier quickly reaches maximal accuracy
+between the 0-th and 5-th training iteration. This suggests that the
+model converges very fast to a minima (of the "cost" of fit).
+
+These results suggest a similar phenomenon as the previous experiment:
+the 0-seed leads to a better initial choice of values
+(0.906 vs 0.96 for maxIter=0).
+
+Effect of Number of Speakers on Performance  ===================================
+
+Unseen Data Allowed (Seed 401)
+M: 8, maxIter: 20, S: 32, Accuracy: 1.0
+M: 8, maxIter: 20, S: 24, Accuracy: 0.75
+M: 8, maxIter: 20, S: 16, Accuracy: 0.5
+M: 8, maxIter: 20, S: 8, Accuracy: 0.25
+M: 8, maxIter: 20, S: 4, Accuracy: 0.125
+
+The above experiment allowed unseen data to be tested on the trained models.
+As the number of unknown speakers increases, accuracy decreases.
+It should be noted that the accuracy scores are equal to (S / 32).
+
+This suggests that the models are very perfectly accurate at
+identifying their own speakers (of which there are S-many), but output a
+non-zero likelihood (non-infinite log-likelihood) when run against
+foreign utterances.
+
+Unseen Data Disallowed (Seed 401)
+M: 8, maxIter: 20, S: 32, Accuracy: 1.0
+M: 8, maxIter: 20, S: 24, Accuracy: 1.0
+M: 8, maxIter: 20, S: 16, Accuracy: 1.0
+M: 8, maxIter: 20, S: 8, Accuracy: 1.0
+M: 8, maxIter: 20, S: 4, Accuracy: 1.0
+
+The above experiment demonstrates that the GMM models
+are able to perfectly identify test data drawn
+from their own speakers, confirming the above suspicion.
+
+ANSWERS TO GIVEN QUESTIONS =================================================================================
+
+1) Improving the accuracy of GMM without more training data? ===============================================
+
+    (i) Tune M
+
+        As mentioned previously, a GMM with more mixture components
+        is better able to approximate a multi-modal distribution.
+
+        Intuitively, if I have a latent distribution with k-clusters
+        and I have c choices of cluster centers (means)
+        and widths (variances), with c < k, I will have to approximate
+        some distinct clusters as singular.
+
+        If I have c = k, I should be able to approximate the latent
+        distribution quite well by placing my centers close to the
+        latent centers, and matching the variances up.
+
+        However, there is a trade-off for over-fitting with a large M.
+        Theoretically, I could match N many points perfectly
+        with N-many centers/means - I could just put the centers on top
+        of the points and minimize variance,
+        thereby maximizing the probability of obtaining each point.
+
+        Ideally, M should be tuned such that it equals the
+        number of clusters in the latent distribution.
+        This will ensure that the latent distribution
+        can be approximated accurately while minimizing
+        the chances of over-fitting.
+
+        However, since the properties of the latent
+        distribution are unknown, trial and error
+        must be used to find ideal M.
+
+
+    (ii) Increase maxIter
+
+        Running more training iterations should increase the accuracy
+        of the model by tuning it to better approximate the training data,
+        which in turn should make it better at approximating the latent distribution.
+
+        For the data specific to the assignment, this may not be the
+        best option as the maxIter experiments demonstrated
+        a very quick convergence.
+
+        Training should stop when the model's test and train accuracies
+        begin to diverge (i.e. test acc decreases and train acc increases).
+        This divergence would suggest that the model is over-fitting the
+        training data (it is tuning its parameters towards the
+        train set at the expense of the parameters' ability to
+        generalize to unseen data).
+
+    (iii) Trying multiple parameter (mu, sigma, omega) instantiations
+
+        It's possible for the EM algorithm to get stuck in a local log-likelihood maxima.
+        EM will converge to points on where the gradient of log-likelihood is 0,
+        but there is no guarantee that such a point is a global maximum of log-likelihood.
+
+        Therefore, trying out multiple starting points and letting EM tune
+        the parameters is more likely to lead to the algorithm finishing
+        at a better minima.
+
+        It should be noted that this method isn't particularly efficient,
+        as the number of potential starting points grows
+        exponentially with respect to the number of parameters.
+
+        Still, the previous experiments demonstrated that
+        trying only 2 different RNG seeds (equivalent to
+        2 different instantiations) led to better test-accuracies.
+
+
+2) When and how would the classifier decide that a
+given utterance comes from none of the trained speakers? ===================================================
+
+The classifier would judge an utterance to come from none of the trained speakers
+if all of the GMM models produced a log-likelihood of -infinity for the utterance.
+This would mean that the likelihood of the utterance coming
+from any of the GMM models is 0.
+If every GMM judges the likelihood of the utterance to be 0,
+then it must not have originated from any of their respective speakers.
+
+It should be noted that negative-infinity log-likelihoods
+were never observed when unseen data was presented to the GMM's.
+However, very large negative log-likelihoods were observed for the unseen data.
+Perhaps a threshold-based algorithm could approximate
+the theoretical algorithm of having all
+GMM's output 0 likelihood (-inf log-likelihood).
+
+For example, determine the average log-likelihood of each
+GMM when it is run against it's training utterances.
+If the log-likelihood produced by the test data is substantially
+below this threshold, we can consider the test-data to be "unseen"
+
+3) Alternative methods for speaker identification (not GMM) ================================================
+
+    i) K-means: https://en.wikipedia.org/wiki/K-means_clustering
+        a) Run k-means on the utterance data to find the (approximate) k-cluster centers for k-many speakers
+
+        b) When given a new utterance, find the closest (by Euclidean distance) cluster center C.
+        The speaker that C represents should be the speaker of the utterance.
+
+        Note: this might work quite well for the given utterance data,
+        given that each speaker can be approximated
+        fairly well with a M=1 GMM model (i.e. a uni-modal distribution).
+        However, any significant overlap between utterance data
+        will degrade the performance of this method.
+
+    ii) PCA ala Eigenfaces: https://en.wikipedia.org/wiki/Eigenface
+
+        a) Find the principal components of the utterance training data
+            (set of N-many orthogonal basis D-vectors that can
+            approximate the D-dimensional data, where (hopefully), N < D)
+
+        b) When given a new utterance, re-express it in terms of
+        the principal components. The re-expressed vector will have been
+        reduced in dimensionality from D to N,
+        as it is now a linear sum of the N principal components.
+
+        c) Find the closest (by Euclidean distance) N-vector
+        in the training set (re-expressed using the principal components).
+        The label of the closest training vector will be the output.
+
+        Note: since the dimensionality of the utterances is quite small (D=13),
+        this method may not work as well for the given utterance data.
+        PCA is appropriate when a large portion of dimensions are linearly
+        inter-dependent, which means that the fidelity of
+        the vector reconstructions using principal components
+        can be quite high. Any information lost in the
+        vector reconstructions will lead to degraded performance
+        when the reconstructed train and test vectors are matched by distance.

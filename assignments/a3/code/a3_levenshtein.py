@@ -17,7 +17,11 @@ def Levenshtein(r, h):
                                                                                 
     Returns                                                                     
     -------                                                                     
-    (WER, nS, nI, nD): (float, int, int, int) WER, number of substitutions, insertions, and deletions respectively
+    (WER, nS, nI, nD): (float, int, int, int)
+    WER,
+    number of substitutions,
+    insertions, and
+    deletions respectively
                                                                                 
     Examples                                                                    
     --------                                                                    
