@@ -3,10 +3,7 @@ import numpy as np
 import string
 import sys
 
-# TODO CHANGE TO RUN ON CDF
 dataDir = '/u/cs401/A3/data/'
-dataDir = "../data/"
-
 
 def Levenshtein(r, h):
     """                                                                         

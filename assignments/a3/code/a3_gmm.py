@@ -6,10 +6,6 @@ from scipy.special import logsumexp
 
 dataDir = '/u/cs401/A3/data/'
 
-# TODO CHANGE FOR RUNNING ON CDF
-dataDir = '../data/'
-
-
 class theta:
     def __init__(self, name, M=8, d=13):
         self.name = name
@@ -714,7 +710,6 @@ def main(M, k, epsilon, max_iter, data_dir, num_speakers=32,
 
 
 if __name__ == "__main__":
-    # TODO RESTORE OLD CODE
 
     # Note: moved away main block for modular code
     main(
