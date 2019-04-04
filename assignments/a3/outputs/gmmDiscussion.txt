@@ -98,9 +98,12 @@ As the number of unknown speakers increases, accuracy decreases.
 It should be noted that the accuracy scores are equal to (S / 32).
 
 This suggests that the models are very perfectly accurate at
-identifying their own speakers (of which there are S-many), but output a
-non-zero likelihood (non-infinite log-likelihood) when run against
-foreign utterances.
+identifying their own speakers (of which there are S-many).
+The next sub-experiment confirms this suspicion. More in-depth analysis
+of the algorithm's found that some GMM models output non-zero
+likelihood (non-neg-infinite log-likelihood) when run against
+foreign utterances. Therefore, these GMM models' output still made it
+into the ranking stage, even though they were relatively bad fits.
 
 Unseen Data Disallowed (Seed 401)
 M: 8, maxIter: 20, S: 32, Accuracy: 1.0
@@ -243,3 +246,8 @@ below this threshold, we can consider the test-data to be "unseen"
         can be quite high. Any information lost in the
         vector reconstructions will lead to degraded performance
         when the reconstructed train and test vectors are matched by distance.
+
+        Note: PCA dimensionality reduction can be considered
+        to be a generic pre-processing step for data, i.e.
+        PCA-reduced data can be used as input to any vector classifier,
+        e.g. GMM, neural networks, decision trees, etc.
