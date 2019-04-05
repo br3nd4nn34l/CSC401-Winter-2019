@@ -98,7 +98,7 @@ def sum_xn2_over_smn(X, components, model):
     # Axis 1: component
     # Axis 2: dimension
     # Want to sum along dimension
-    return np.nansum(terms, axis=2)  # Shape: (T, k)
+    return np.sum(terms, axis=2)  # Shape: (T, k)
 
 
 def sum_xn_umn_over_smn(X, components, model):
@@ -130,7 +130,7 @@ def sum_xn_umn_over_smn(X, components, model):
     # Axis 1: component
     # Axis 2: dimension
     # Want to sum along dimension
-    return np.nansum(terms, axis=2)  # Shape (T, k)
+    return np.sum(terms, axis=2)  # Shape (T, k)
 
 
 def sum_umn2_over_smn(components, model):
@@ -156,7 +156,7 @@ def sum_umn2_over_smn(components, model):
     # Axis 0: component
     # Axis 1: dimension
     # Want to sum along dimension
-    return np.nansum(terms, axis=1)  # Shape (k,)
+    return np.sum(terms, axis=1)  # Shape (k,)
 
 
 def sum_log_smn(components, model):
@@ -179,7 +179,7 @@ def sum_log_smn(components, model):
     # Axis 0: component
     # Axis 1: dimension
     # Want to sum along dimension
-    return np.nansum(log_sig_m, axis=1)  # Shape: (k,)
+    return np.sum(log_sig_m, axis=1)  # Shape: (k,)
 
 
 def m_term_of_log_bmx(components, model):
@@ -352,7 +352,7 @@ def logLik(log_Bs, myTheta):
     )
 
     # Sum across all t=1->T
-    return np.nansum(log_p_xt_theta)
+    return np.sum(log_p_xt_theta)
 
 
 # endregion
@@ -529,7 +529,7 @@ def initialize_theta(speaker, M, X):
     ret.mu = X[rand_inds, :]  # Shape (T, d)[(M,)] -> (M, d)
 
     # Initialize sigma randomly
-    ret.Sigma = np.random.rand(*ret.Sigma.shape)  # Between 0 and 1
+    ret.Sigma = 1 - np.random.rand(*ret.Sigma.shape)  # Between (0, 1]
 
     # Initialize omega randomly
     # Omegas must add up to one
